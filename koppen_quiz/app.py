@@ -11,6 +11,19 @@ from .quiz import MODES, build_quiz, climate_label, render_question
 COUNTS = (5, 10, 20)
 
 
+def deck_context():
+    """暗記カード（ハイサーグラフ）の表示データ。"""
+    deck = []
+    for name, c in CITIES.items():
+        res = classify(c["temps"], c["precs"], c["southern"])
+        deck.append({"name": name, "country": c["country"], "code": c["code"],
+                     "zone": CLIMATES[c["code"]]["zone"], "southern": c["southern"],
+                     "label": climate_label(c["code"]), "info": CLIMATES[c["code"]],
+                     "steps": res.steps, "svg": hythergraph_svg(c["temps"], c["precs"])})
+    zones = {c["zone"]: c["zone_name"] for c in CLIMATES.values()}
+    return {"deck": deck, "zones": zones}
+
+
 def create_app(test_config=None):
     app = Flask(__name__)
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY") or secrets.token_hex(16)
@@ -19,15 +32,7 @@ def create_app(test_config=None):
 
     @app.route("/")
     def cards():
-        deck = []
-        for name, c in CITIES.items():
-            res = classify(c["temps"], c["precs"], c["southern"])
-            deck.append({"name": name, "country": c["country"], "code": c["code"],
-                         "zone": CLIMATES[c["code"]]["zone"], "southern": c["southern"],
-                         "label": climate_label(c["code"]), "info": CLIMATES[c["code"]],
-                         "steps": res.steps, "svg": hythergraph_svg(c["temps"], c["precs"])})
-        zones = {c["zone"]: c["zone_name"] for c in CLIMATES.values()}
-        return render_template("cards.html", deck=deck, zones=zones)
+        return render_template("cards.html", **deck_context())
 
     @app.route("/menu")
     def index():

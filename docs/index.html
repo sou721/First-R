@@ -1,0 +1,748 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ケッペン暗記">
+<title>ハイサーグラフ暗記カード</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+:root {
+  --bg: #f4f6f8; --card: #ffffff; --text: #1d2733; --muted: #5f6b78; --border: #d9dee4;
+  --accent: #1f6feb; --accent-text: #ffffff;
+  --ok: #1a7f37; --ok-bg: #e6f4ea; --ng: #c62828; --ng-bg: #fdecea;
+  --temp: #d9480f; --prec: #4a90d9; --grid: #e3e7eb;
+  --zA: #e8f5e9; --zB: #fff4dc; --zC: #e7f1fb; --zD: #efe9f8; --zE: #eef1f3;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12161b; --card: #1c222a; --text: #e6eaef; --muted: #9aa5b1; --border: #313a45;
+    --accent: #4d8ff5; --accent-text: #0b0f14;
+    --ok: #57c574; --ok-bg: #1b3324; --ng: #f07070; --ng-bg: #3a1f1f;
+    --temp: #ff8a50; --prec: #5c9de0; --grid: #2b333d;
+    --zA: #1d3122; --zB: #362d17; --zC: #1a2b3d; --zD: #2a2238; --zE: #262c32;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12161b; --card: #1c222a; --text: #e6eaef; --muted: #9aa5b1; --border: #313a45;
+  --accent: #4d8ff5; --accent-text: #0b0f14;
+  --ok: #57c574; --ok-bg: #1b3324; --ng: #f07070; --ng-bg: #3a1f1f;
+  --temp: #ff8a50; --prec: #5c9de0; --grid: #2b333d;
+  --zA: #1d3122; --zB: #362d17; --zC: #1a2b3d; --zD: #2a2238; --zE: #262c32;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--text); line-height: 1.7;
+  font-family: "Hiragino Sans", "Noto Sans JP", "Yu Gothic", system-ui, sans-serif;
+}
+a { color: var(--accent); }
+main {
+  max-width: 860px; margin: 0 auto; padding-block: 16px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+header.site {
+  display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center; justify-content: space-between;
+  padding-block: 12px; background: var(--card); border-bottom: 1px solid var(--border);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+header.site .brand { font-weight: 700; text-decoration: none; color: var(--text); }
+header.site nav { display: flex; gap: 16px; }
+header.site nav a { text-decoration: none; }
+footer.site { text-align: center; color: var(--muted); font-size: .8rem; padding: 24px 16px; }
+h1 { font-size: 1.4rem; margin: 0 0 8px; }
+h2 { font-size: 1.1rem; margin: 20px 0 8px; }
+.card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 18px; margin: 14px 0;
+}
+.card > h2:first-child { margin-top: 0; }
+.center { text-align: center; }
+.muted { color: var(--muted); font-size: .9em; }
+.choices { display: flex; flex-wrap: wrap; gap: 8px; }
+.pick { display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+  border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; }
+.pick:has(input:checked) { border-color: var(--accent); outline: 2px solid var(--accent); }
+.pick.inline { margin: 10px 10px 10px 0; }
+.primary, .secondary {
+  display: inline-block; border: 0; border-radius: 10px; padding: 10px 20px; font-size: 1rem;
+  cursor: pointer; text-decoration: none; text-align: center; font-family: inherit;
+}
+.primary { background: var(--accent); color: var(--accent-text); font-weight: 700; }
+.secondary { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+.big { display: block; width: 100%; margin-top: 18px; padding: 14px; font-size: 1.1rem; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; align-items: center; }
+.flow li { margin: 4px 0; }
+
+.progress { display: flex; justify-content: space-between; color: var(--muted); font-size: .9rem; }
+.bar-track { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.bar-fill { height: 100%; background: var(--accent); transition: width .3s; }
+.prompt { font-size: 1.15rem; font-weight: 700; margin: 0 0 8px; }
+.hint { white-space: pre-line; background: var(--bg); border-radius: 8px; padding: 10px 12px; }
+.options { display: grid; gap: 10px; margin-top: 14px; }
+.option {
+  display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+  background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 10px;
+  padding: 12px 14px; font-size: 1rem; font-family: inherit;
+}
+button.option { cursor: pointer; }
+button.option:hover { border-color: var(--accent); }
+.option .num {
+  flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--bg); font-size: .85rem; font-weight: 700;
+}
+.option.correct { background: var(--ok-bg); border-color: var(--ok); }
+.option.wrong { background: var(--ng-bg); border-color: var(--ng); }
+.verdict { font-size: 1.2rem; font-weight: 700; margin: 16px 0 4px; }
+.verdict.ok { color: var(--ok); } .verdict.ng { color: var(--ng); }
+.explain { border-top: 1px dashed var(--border); margin-top: 10px; padding-top: 6px; }
+.label { font-weight: 700; margin: 8px 0 0; }
+.steps { padding-left: 1.4em; margin: 4px 0 10px; }
+.steps li { margin: 2px 0; }
+.big-msg { font-size: 1.05rem; }
+.review summary { cursor: pointer; font-weight: 700; }
+.review.ng { border-left: 4px solid var(--ng); } .review.ok { border-left: 4px solid var(--ok); }
+
+.chart { max-width: 460px; margin: 8px auto; }
+.climograph { width: 100%; height: auto; display: block; }
+.climograph .grid { stroke: var(--grid); stroke-width: 1; }
+.climograph .axis.zero { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 4 3; }
+.climograph .frame { fill: none; stroke: var(--muted); stroke-width: 1; }
+.climograph .bar { fill: var(--prec); opacity: .85; }
+.climograph .line { fill: none; stroke: var(--temp); stroke-width: 2.5; }
+.climograph .dot { fill: var(--temp); }
+.climograph .lbl { font-size: 11px; fill: var(--muted); }
+.climograph .lbl.t { fill: var(--temp); } .climograph .lbl.p { fill: var(--prec); }
+
+.data summary { cursor: pointer; color: var(--muted); font-size: .9rem; }
+.data table, table.input { border-collapse: collapse; font-size: .8rem; margin-top: 6px; }
+.data th, .data td, table.input th, table.input td {
+  border: 1px solid var(--border); padding: 2px 4px; text-align: center; }
+.data, .table-wrap { overflow-x: auto; }
+table.input input {
+  width: 3.6em; padding: 4px; font-size: .9rem; border: 1px solid var(--border); border-radius: 4px;
+  background: var(--bg); color: var(--text);
+}
+table.ref { border-collapse: collapse; font-size: .85rem; min-width: 720px; }
+table.ref th, table.ref td { border: 1px solid var(--border); padding: 6px; vertical-align: top; }
+.zone-A td:first-child, .city.zone-A .tag { background: var(--zA); }
+.zone-B td:first-child, .city.zone-B .tag { background: var(--zB); }
+.zone-C td:first-child, .city.zone-C .tag { background: var(--zC); }
+.zone-D td:first-child, .city.zone-D .tag { background: var(--zD); }
+.zone-E td:first-child, .city.zone-E .tag { background: var(--zE); }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.city { margin: 0; padding: 12px; }
+.city h3 { margin: 0; font-size: 1rem; }
+.city .tag { display: inline-block; border-radius: 6px; padding: 0 8px; margin: 4px 0; font-size: .85rem; }
+.small { font-size: .8rem; }
+select { font-size: 1rem; padding: 4px; background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 6px; }
+
+/* ---- ハイサーグラフ暗記カード ---- */
+.climograph.hyther .line { stroke-width: 2; }
+.climograph .dot.first { fill: var(--card); stroke: var(--temp); stroke-width: 2.5; }
+.climograph .mon { font-size: 10px; fill: var(--text); font-weight: 700; }
+.deck-bar { display: flex; flex-direction: column; gap: 8px; }
+.filters { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  border: 1px solid var(--border); background: var(--card); color: var(--text); border-radius: 999px;
+  padding: 4px 12px; font-size: .85rem; cursor: pointer; font-family: inherit;
+}
+.chip.active { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+.deck-status { display: flex; justify-content: space-between; color: var(--muted); font-size: .9rem; }
+.flip-area { margin: 12px 0; }
+.flip-card .chart { margin: 4px auto; }
+.flip-card { perspective: 1200px; cursor: pointer; outline: none; -webkit-tap-highlight-color: transparent; }
+.flip-card[hidden] { display: none; }
+.flip-inner {
+  position: relative; display: grid; transition: transform .5s; transform-style: preserve-3d;
+}
+.flip-card.flipped .flip-inner { transform: rotateY(180deg); }
+.face {
+  grid-area: 1 / 1; backface-visibility: hidden; -webkit-backface-visibility: hidden;
+  background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 16px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, .08);
+}
+.face.back { transform: rotateY(180deg); overflow-y: auto; position: absolute; inset: 0; }
+.flip-card:focus-visible .face { outline: 3px solid var(--accent); }
+.face-title { font-weight: 700; font-size: 1.1rem; margin: 0; text-align: center; }
+.face .hint { text-align: center; font-size: .9rem; margin: 6px 0; }
+.tap { text-align: center; color: var(--muted); font-size: .85rem; margin: 8px 0 0; }
+.answer-code { font-size: 1.5rem; font-weight: 800; margin: 4px 0 0; text-align: center; }
+.answer-city { text-align: center; font-size: 1.1rem; margin: 0 0 8px; }
+.zone-bg-A { background: var(--zA); } .zone-bg-B { background: var(--zB); }
+.zone-bg-C { background: var(--zC); } .zone-bg-D { background: var(--zD); }
+.zone-bg-E { background: var(--zE); }
+.deck-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.deck-actions[hidden], .deck-sub[hidden] { display: none; }
+.deck-actions button { padding: 14px; font-size: 1.05rem; }
+.deck-sub { display: flex; justify-content: space-between; margin: 10px 0; }
+.link { background: none; border: 0; color: var(--accent); font-size: .95rem; cursor: pointer; padding: 6px; font-family: inherit; }
+.done { text-align: center; }
+
+.site-title { font-weight: 700; }
+</style>
+</head>
+<body>
+<header class="site">
+  <span class="site-title">🌏 ハイサーグラフ暗記カード</span>
+  <span class="muted">ケッペンの気候区分</span>
+</header>
+<main>
+
+<div class="deck-bar">
+  <div class="filters" role="group" aria-label="気候帯でしぼりこむ">
+    <button type="button" class="chip active" data-zone="">すべて</button>
+    
+    <button type="button" class="chip" data-zone="A">A 熱帯</button>
+    
+    <button type="button" class="chip" data-zone="B">B 乾燥帯</button>
+    
+    <button type="button" class="chip" data-zone="C">C 温帯</button>
+    
+    <button type="button" class="chip" data-zone="D">D 亜寒帯（冷帯）</button>
+    
+    <button type="button" class="chip" data-zone="E">E 寒帯</button>
+    
+  </div>
+  <div class="deck-status"><span id="pos"></span><span id="remain"></span></div>
+</div>
+
+<div class="flip-area">
+  
+  <div class="flip-card" data-zone="A" hidden tabindex="0"
+       role="button" aria-label="タップしてカードを裏返す">
+    <div class="flip-inner">
+      <div class="face front">
+        <p class="face-title">この都市の気候区は？</p>
+        <div class="chart"><svg viewBox="0 0 400 380" class="climograph hyther" role="img" aria-label="ハイサーグラフ" xmlns="http://www.w3.org/2000/svg"><line x1="44" y1="340.0" x2="384" y2="340.0" class="grid"/><text x="38" y="344.0" class="lbl t" text-anchor="end">-10</text><line x1="44" y1="260.5" x2="384" y2="260.5" class="axis zero"/><text x="38" y="264.5" class="lbl t" text-anchor="end">0</text><line x1="44" y1="181.0" x2="384" y2="181.0" class="grid"/><text x="38" y="185.0" class="lbl t" text-anchor="end">10</text><line x1="44" y1="101.5" x2="384" y2="101.5" class="grid"/><text x="38" y="105.5" class="lbl t" text-anchor="end">20</text><line x1="44" y1="22.0" x2="384" y2="22.0" class="grid"/><text x="38" y="26.0" class="lbl t" text-anchor="end">30</text><line x1="44.0" y1="22" x2="44.0" y2="340" class="grid"/><text x="44.0" y="355" class="lbl p" text-anchor="middle">0</text><line x1="157.3" y1="22" x2="157.3" y2="340" class="grid"/><text x="157.3" y="355" class="lbl p" text-anchor="middle">100</text><line x1="270.7" y1="22" x2="270.7" y2="340" class="grid"/><text x="270.7" y="355" class="lbl p" text-anchor="middle">200</text><line x1="384.0" y1="22" x2="384.0" y2="340" class="grid"/><text x="384.0" y="355" class="lbl p" text-anchor="middle">300</text><rect x="44" y="22" width="340" height="318" class="frame"/><polyline points="318.3,49.0 227.6,45.1 253.7,41.9 246.9,37.9 238.9,35.5 227.6,35.5 223.1,38.7 243.5,38.7 235.5,41.1 263.9,41.1 334.1,45.9 370.4,49.8 318.3,49.0" class="line"/><circle cx="318.3" cy="49.0" r="5" class="dot first"><title>1月 26.6℃ 242mm</title></circle><text x="328.2" y="53.9" class="mon" text-anchor="middle">1</text><circle cx="227.6" cy="45.1" r="3.5" class="dot"><title>2月 27.1℃ 162mm</title></circle><text x="217.6" y="49.4" class="mon" text-anchor="middle">2</text><circle cx="253.7" cy="41.9" r="3.5" class="dot"><title>3月 27.5℃ 185mm</title></circle><text x="243.7" y="45.5" class="mon" text-anchor="middle">3</text><circle cx="246.9" cy="37.9" r="3.5" class="dot"><title>4月 28.0℃ 179mm</title></circle><text x="237.1" y="39.4" class="mon" text-anchor="middle">4</text><circle cx="238.9" cy="35.5" r="3.5" class="dot"><title>5月 28.3℃ 172mm</title></circle><text x="229.2" y="36.7" class="mon" text-anchor="middle">5</text><circle cx="227.6" cy="35.5" r="3.5" class="dot"><title>6月 28.3℃ 162mm</title></circle><text x="217.7" y="37.4" class="mon" text-anchor="middle">6</text><circle cx="223.1" cy="38.7" r="3.5" class="dot"><title>7月 27.9℃ 158mm</title></circle><text x="213.1" y="41.5" class="mon" text-anchor="middle">7</text><circle cx="243.5" cy="38.7" r="3.5" class="dot"><title>8月 27.9℃ 176mm</title></circle><text x="233.6" y="40.8" class="mon" text-anchor="middle">8</text><circle cx="235.5" cy="41.1" r="3.5" class="dot"><title>9月 27.6℃ 169mm</title></circle><text x="225.5" y="44.4" class="mon" text-anchor="middle">9</text><circle cx="263.9" cy="41.1" r="3.5" class="dot"><title>10月 27.6℃ 194mm</title></circle><text x="254.6" y="40.7" class="mon" text-anchor="middle">10</text><circle cx="334.1" cy="45.9" r="3.5" class="dot"><title>11月 27.0℃ 256mm</title></circle><text x="344.1" y="50.0" class="mon" text-anchor="middle">11</text><circle cx="370.4" cy="49.8" r="3.5" class="dot"><title>12月 26.5℃ 288mm</title></circle><text x="380.4" y="54.1" class="mon" text-anchor="middle">12</text><text x="38" y="15" class="lbl t" text-anchor="end">℃</text><text x="214.0" y="374" class="lbl p" text-anchor="middle">降水量（mm）</text></svg></div>
+        <p class="hint">北半球・白丸○が1月</p>
+        <p class="tap">👆 タップして答えを見る</p>
+      </div>
+      <div class="face back zone-bg-A">
+        <p class="answer-code">Af（熱帯雨林気候）</p>
+        <p class="answer-city">シンガポール（シンガポール）</p>
+        <p class="label">判定の手順</p>
+        <ol class="steps"><li>最暖月平均気温 28.3℃ ≧ 10℃ → 寒帯（E）ではない</li><li>年降水量 2343mm ≧ 乾燥限界 691mm（年中ほぼ平均的に降るなので r = 20 × (27.5 + 7)）→ 乾燥帯（B）ではない</li><li>最寒月平均気温 26.5℃ ≧ 18℃ → 熱帯（A）</li><li>最少雨月降水量 158mm ≧ 60mm → 熱帯雨林気候（Af）</li></ol>
+        <p class="label">特徴</p>
+        <p>年中高温多雨。スコールがある。気温の年較差が小さい。</p>
+        <p>植生：常緑広葉樹の密林（アマゾンのセルバなど）／土壌：ラトソル</p>
+        <p class="tap">👆 タップで表に戻る</p>
+      </div>
+    </div>
+  </div>
+  
+  <div class="flip-card" data-zone="A" hidden tabindex="0"
+       role="button" aria-label="タップしてカードを裏返す">
+    <div class="flip-inner">
+      <div class="face front">
+        <p class="face-title">この都市の気候区は？</p>
+        <div class="chart"><svg viewBox="0 0 400 380" class="climograph hyther" role="img" aria-label="ハイサーグラフ" xmlns="http://www.w3.org/2000/svg"><line x1="44" y1="340.0" x2="384" y2="340.0" class="grid"/><text x="38" y="344.0" class="lbl t" text-anchor="end">-10</text><line x1="44" y1="276.4" x2="384" y2="276.4" class="axis zero"/><text x="38" y="280.4" class="lbl t" text-anchor="end">0</text><line x1="44" y1="212.8" x2="384" y2="212.8" class="grid"/><text x="38" y="216.8" class="lbl t" text-anchor="end">10</text><line x1="44" y1="149.2" x2="384" y2="149.2" class="grid"/><text x="38" y="153.2" class="lbl t" text-anchor="end">20</text><line x1="44" y1="85.6" x2="384" y2="85.6" class="grid"/><text x="38" y="89.6" class="lbl t" text-anchor="end">30</text><line x1="44" y1="22.0" x2="384" y2="22.0" class="grid"/><text x="38" y="26.0" class="lbl t" text-anchor="end">40</text><line x1="44.0" y1="22" x2="44.0" y2="340" class="grid"/><text x="44.0" y="355" class="lbl p" text-anchor="middle">0</text><line x1="157.3" y1="22" x2="157.3" y2="340" class="grid"/><text x="157.3" y="355" class="lbl p" text-anchor="middle">200</text><line x1="270.7" y1="22" x2="270.7" y2="340" class="grid"/><text x="270.7" y="355" class="lbl p" text-anchor="middle">400</text><line x1="384.0" y1="22" x2="384.0" y2="340" class="grid"/><text x="384.0" y="355" class="lbl p" text-anchor="middle">600</text><rect x="44" y="22" width="340" height="318" class="frame"/><polyline points="45.7,116.1 45.1,107.2 48.0,92.6 58.7,81.8 214.6,93.2 355.1,104.0 379.5,107.2 359.6,107.9 267.3,106.0 147.7,103.4 73.5,107.9 48.0,116.8 45.7,116.1" class="line"/><circle cx="45.7" cy="116.1" r="5" class="dot first"><title>1月 25.2℃ 3mm</title></circle><text x="35.7" y="120.6" class="mon" text-anchor="middle">1</text><circle cx="45.1" cy="107.2" r="3.5" class="dot"><title>2月 26.6℃ 2mm</title></circle><text x="35.1" y="111.0" class="mon" text-anchor="middle">2</text><circle cx="48.0" cy="92.6" r="3.5" class="dot"><title>3月 28.9℃ 7mm</title></circle><text x="38.0" y="95.2" class="mon" text-anchor="middle">3</text><circle cx="58.7" cy="81.8" r="3.5" class="dot"><title>4月 30.6℃ 26mm</title></circle><text x="48.9" y="83.4" class="mon" text-anchor="middle">4</text><circle cx="214.6" cy="93.2" r="3.5" class="dot"><title>5月 28.8℃ 301mm</title></circle><text x="224.3" y="94.4" class="mon" text-anchor="middle">5</text><circle cx="355.1" cy="104.0" r="3.5" class="dot"><title>6月 27.1℃ 549mm</title></circle><text x="365.1" y="107.6" class="mon" text-anchor="middle">6</text><circle cx="379.5" cy="107.2" r="3.5" class="dot"><title>7月 26.6℃ 592mm</title></circle><text x="389.5" y="110.9" class="mon" text-anchor="middle">7</text><circle cx="359.6" cy="107.9" r="3.5" class="dot"><title>8月 26.5℃ 557mm</title></circle><text x="369.6" y="111.6" class="mon" text-anchor="middle">8</text><circle cx="267.3" cy="106.0" r="3.5" class="dot"><title>9月 26.8℃ 394mm</title></circle><text x="277.3" y="109.7" class="mon" text-anchor="middle">9</text><circle cx="147.7" cy="103.4" r="3.5" class="dot"><title>10月 27.2℃ 183mm</title></circle><text x="137.7" y="106.8" class="mon" text-anchor="middle">10</text><circle cx="73.5" cy="107.9" r="3.5" class="dot"><title>11月 26.5℃ 52mm</title></circle><text x="63.5" y="111.8" class="mon" text-anchor="middle">11</text><circle cx="48.0" cy="116.8" r="3.5" class="dot"><title>12月 25.1℃ 7mm</title></circle><text x="38.0" y="121.3" class="mon" text-anchor="middle">12</text><text x="38" y="15" class="lbl t" text-anchor="end">℃</text><text x="214.0" y="374" class="lbl p" text-anchor="middle">降水量（mm）</text></svg></div>
+        <p class="hint">北半球・白丸○が1月</p>
+        <p class="tap">👆 タップして答えを見る</p>
+      </div>
+      <div class="face back zone-bg-A">
+        <p class="answer-code">Am（熱帯モンスーン気候）</p>
+        <p class="answer-city">ヤンゴン（ミャンマー）</p>
+        <p class="label">判定の手順</p>
+        <ol class="steps"><li>最暖月平均気温 30.6℃ ≧ 10℃ → 寒帯（E）ではない</li><li>年降水量 2673mm ≧ 乾燥限界 823mm（夏に雨が集中（夏半年に年降水量の70%以上）なので r = 20 × (27.2 + 14)）→ 乾燥帯（B）ではない</li><li>最寒月平均気温 25.1℃ ≧ 18℃ → 熱帯（A）</li><li>最少雨月 2mm &lt; 60mm だが、100 − 年降水量/25 = -7mm 以上 → 弱い乾季のある熱帯モンスーン気候（Am）</li></ol>
+        <p class="label">特徴</p>
+        <p>モンスーン（季節風）の影響で多雨。短い弱い乾季がある。</p>
+        <p>植生：常緑広葉樹と落葉樹がまじる森林／土壌：ラトソル</p>
+        <p class="tap">👆 タップで表に戻る</p>
+      </div>
+    </div>
+  </div>
+  
+  <div class="flip-card" data-zone="A" hidden tabindex="0"
+       role="button" aria-label="タップしてカードを裏返す">
+    <div class="flip-inner">
+      <div class="face front">
+        <p class="face-title">この都市の気候区は？</p>
+        <div class="chart"><svg viewBox="0 0 400 380" class="climograph hyther" role="img" aria-label="ハイサーグラフ" xmlns="http://www.w3.org/2000/svg"><line x1="44" y1="340.0" x2="384" y2="340.0" class="grid"/><text x="38" y="344.0" class="lbl t" text-anchor="end">-10</text><line x1="44" y1="276.4" x2="384" y2="276.4" class="axis zero"/><text x="38" y="280.4" class="lbl t" text-anchor="end">0</text><line x1="44" y1="212.8" x2="384" y2="212.8" class="grid"/><text x="38" y="216.8" class="lbl t" text-anchor="end">10</text><line x1="44" y1="149.2" x2="384" y2="149.2" class="grid"/><text x="38" y="153.2" class="lbl t" text-anchor="end">20</text><line x1="44" y1="85.6" x2="384" y2="85.6" class="grid"/><text x="38" y="89.6" class="lbl t" text-anchor="end">30</text><line x1="44" y1="22.0" x2="384" y2="22.0" class="grid"/><text x="38" y="26.0" class="lbl t" text-anchor="end">40</text><line x1="44.0" y1="22" x2="44.0" y2="340" class="grid"/><text x="44.0" y="355" class="lbl p" text-anchor="middle">0</text><line x1="129.0" y1="22" x2="129.0" y2="340" class="grid"/><text x="129.0" y="355" class="lbl p" text-anchor="middle">100</text><line x1="214.0" y1="22" x2="214.0" y2="340" class="grid"/><text x="214.0" y="355" class="lbl p" text-anchor="middle">200</text><line x1="299.0" y1="22" x2="299.0" y2="340" class="grid"/><text x="299.0" y="355" class="lbl p" text-anchor="middle">300</text><line x1="384.0" y1="22" x2="384.0" y2="340" class="grid"/><text x="384.0" y="355" class="lbl p" text-anchor="middle">400</text><rect x="44" y="22" width="340" height="318" class="frame"/><polyline points="55.0,104.7 61.0,96.4 79.7,89.4 121.3,83.7 254.8,86.2 192.8,90.1 187.7,92.6 241.2,93.9 327.9,96.4 271.8,98.3 92.5,100.9 51.6,108.5 55.0,104.7" class="line"/><circle cx="55.0" cy="104.7" r="5" class="dot first"><title>1月 27.0℃ 13mm</title></circle><text x="45.1" y="109.1" class="mon" text-anchor="middle">1</text><circle cx="61.0" cy="96.4" r="3.5" class="dot"><title>2月 28.3℃ 20mm</title></circle><text x="51.0" y="100.0" class="mon" text-anchor="middle">2</text><circle cx="79.7" cy="89.4" r="3.5" class="dot"><title>3月 29.4℃ 42mm</title></circle><text x="69.7" y="92.2" class="mon" text-anchor="middle">3</text><circle cx="121.3" cy="83.7" r="3.5" class="dot"><title>4月 30.3℃ 91mm</title></circle><text x="111.7" y="84.5" class="mon" text-anchor="middle">4</text><circle cx="254.8" cy="86.2" r="3.5" class="dot"><title>5月 29.9℃ 248mm</title></circle><text x="264.8" y="88.8" class="mon" text-anchor="middle">5</text><circle cx="192.8" cy="90.1" r="3.5" class="dot"><title>6月 29.3℃ 175mm</title></circle><text x="202.6" y="92.0" class="mon" text-anchor="middle">6</text><circle cx="187.7" cy="92.6" r="3.5" class="dot"><title>7月 28.9℃ 169mm</title></circle><text x="197.6" y="95.1" class="mon" text-anchor="middle">7</text><circle cx="241.2" cy="93.9" r="3.5" class="dot"><title>8月 28.7℃ 232mm</title></circle><text x="251.2" y="97.2" class="mon" text-anchor="middle">8</text><circle cx="327.9" cy="96.4" r="3.5" class="dot"><title>9月 28.3℃ 334mm</title></circle><text x="337.9" y="100.0" class="mon" text-anchor="middle">9</text><circle cx="271.8" cy="98.3" r="3.5" class="dot"><title>10月 28.0℃ 268mm</title></circle><text x="281.8" y="102.1" class="mon" text-anchor="middle">10</text><circle cx="92.5" cy="100.9" r="3.5" class="dot"><title>11月 27.6℃ 57mm</title></circle><text x="82.5" y="105.2" class="mon" text-anchor="middle">11</text><circle cx="51.6" cy="108.5" r="3.5" class="dot"><title>12月 26.4℃ 9mm</title></circle><text x="41.7" y="113.2" class="mon" text-anchor="middle">12</text><text x="38" y="15" class="lbl t" text-anchor="end">℃</text><text x="214.0" y="374" class="lbl p" text-anchor="middle">降水量（mm）</text></svg></div>
+        <p class="hint">北半球・白丸○が1月</p>
+        <p class="tap">👆 タップして答えを見る</p>
+      </div>
+      <div class="face back zone-bg-A">
+        <p class="answer-code">Aw（サバナ気候）</p>
+        <p class="answer-city">バンコク（タイ）</p>
+        <p class="label">判定の手順</p>
+        <ol class="steps"><li>最暖月平均気温 30.3℃ ≧ 10℃ → 寒帯（E）ではない</li><li>年降水量 1658mm ≧ 乾燥限界 850mm（夏に雨が集中（夏半年に年降水量の70%以上）なので r = 20 × (28.5 + 14)）→ 乾燥帯（B）ではない</li><li>最寒月平均気温 26.4℃ ≧ 18℃ → 熱帯（A）</li><li>最少雨月 9mm が 60mm と 34mm（100 − 年降水量/25）を下回る → はっきりした乾季のあるサバナ気候（Aw）</li></ol>
+        <p class="label">特徴</p>
+        <p>雨季と乾季が明瞭。乾季には草が枯れる。</p>
+        <p>植生：疎林と長草草原（サバナ）／土壌：ラトソル</p>
+        <p class="tap">👆 タップで表に戻る</p>
+      </div>
+    </div>
+  </div>
+  
+  <div class="flip-card" data-zone="A" hidden tabindex="0"
+       role="button" aria-label="タップしてカードを裏返す">
+    <div class="flip-inner">
+      <div class="face front">
+        <p class="face-title">この都市の気候区は？</p>
+        <div class="chart"><svg viewBox="0 0 400 380" class="climograph hyther" role="img" aria-label="ハイサーグラフ" xmlns="http://www.w3.org/2000/svg"><line x1="44" y1="340.0" x2="384" y2="340.0" class="grid"/><text x="38" y="344.0" class="lbl t" text-anchor="end">-10</text><line x1="44" y1="260.5" x2="384" y2="260.5" class="axis zero"/><text x="38" y="264.5" class="lbl t" text-anchor="end">0</text><line x1="44" y1="181.0" x2="384" y2="181.0" class="grid"/><text x="38" y="185.0" class="lbl t" text-anchor="end">10</text><line x1="44" y1="101.5" x2="384" y2="101.5" class="grid"/><text x="38" y="105.5" class="lbl t" text-anchor="end">20</text><line x1="44" y1="22.0" x2="384" y2="22.0" class="grid"/><text x="38" y="26.0" class="lbl t" text-anchor="end">30</text><line x1="44.0" y1="22" x2="44.0" y2="340" class="grid"/><text x="44.0" y="355" class="lbl p" text-anchor="middle">0</text><line x1="112.0" y1="22" x2="112.0" y2="340" class="grid"/><text x="112.0" y="355" class="lbl p" text-anchor="middle">100</text><line x1="180.0" y1="22" x2="180.0" y2="340" class="grid"/><text x="180.0" y="355" class="lbl p" text-anchor="middle">200</text><line x1="248.0" y1="22" x2="248.0" y2="340" class="grid"/><text x="248.0" y="355" class="lbl p" text-anchor="middle">300</text><line x1="316.0" y1="22" x2="316.0" y2="340" class="grid"/><text x="316.0" y="355" class="lbl p" text-anchor="middle">400</text><line x1="384.0" y1="22" x2="384.0" y2="340" class="grid"/><text x="384.0" y="355" class="lbl p" text-anchor="middle">500</text><rect x="44" y="22" width="340" height="318" class="frame"/><polyline points="331.6,33.1 298.3,35.5 260.2,34.7 112.0,35.5 58.3,45.9 45.4,59.4 44.7,62.5 47.4,55.4 54.2,39.5 92.3,29.9 140.6,27.6 212.6,29.9 331.6,33.1" class="line"/><circle cx="331.6" cy="33.1" r="5" class="dot first"><title>1月 28.6℃ 423mm</title></circle><text x="341.6" y="36.2" class="mon" text-anchor="middle">1</text><circle cx="298.3" cy="35.5" r="3.5" class="dot"><title>2月 28.3℃ 374mm</title></circle><text x="308.3" y="38.7" class="mon" text-anchor="middle">2</text><circle cx="260.2" cy="34.7" r="3.5" class="dot"><title>3月 28.4℃ 318mm</title></circle><text x="270.2" y="37.7" class="mon" text-anchor="middle">3</text><circle cx="112.0" cy="35.5" r="3.5" class="dot"><title>4月 28.3℃ 100mm</title></circle><text x="102.2" y="37.3" class="mon" text-anchor="middle">4</text><circle cx="58.3" cy="45.9" r="3.5" class="dot"><title>5月 27.0℃ 21mm</title></circle><text x="48.3" y="50.0" class="mon" text-anchor="middle">5</text><circle cx="45.4" cy="59.4" r="3.5" class="dot"><title>6月 25.3℃ 2mm</title></circle><text x="35.5" y="64.8" class="mon" text-anchor="middle">6</text><circle cx="44.7" cy="62.5" r="3.5" class="dot"><title>7月 24.9℃ 1mm</title></circle><text x="34.9" y="68.2" class="mon" text-anchor="middle">7</text><circle cx="47.4" cy="55.4" r="3.5" class="dot"><title>8月 25.8℃ 5mm</title></circle><text x="37.5" y="60.4" class="mon" text-anchor="middle">8</text><circle cx="54.2" cy="39.5" r="3.5" class="dot"><title>9月 27.8℃ 15mm</title></circle><text x="44.2" y="42.8" class="mon" text-anchor="middle">9</text><circle cx="92.3" cy="29.9" r="3.5" class="dot"><title>10月 29.0℃ 71mm</title></circle><text x="82.5" y="31.3" class="mon" text-anchor="middle">10</text><circle cx="140.6" cy="27.6" r="3.5" class="dot"><title>11月 29.3℃ 142mm</title></circle><text x="139.9" y="21.1" class="mon" text-anchor="middle">11</text><circle cx="212.6" cy="29.9" r="3.5" class="dot"><title>12月 29.0℃ 248mm</title></circle><text x="222.5" y="31.9" class="mon" text-anchor="middle">12</text><text x="38" y="15" class="lbl t" text-anchor="end">℃</text><text x="214.0" y="374" class="lbl p" text-anchor="middle">降水量（mm）</text></svg></div>
+        <p class="hint">南半球（夏は12〜2月）・白丸○が1月</p>
+        <p class="tap">👆 タップして答えを見る</p>
+      </div>
+      <div class="face back zone-bg-A">
+        <p class="answer-code">Aw（サバナ気候）</p>
+        <p class="answer-city">ダーウィン（オーストラリア）</p>
+        <p class="label">判定の手順</p>
+        <ol class="steps"><li>最暖月平均気温 29.3℃ ≧ 10℃ → 寒帯（E）ではない</li><li>年降水量 1720mm ≧ 乾燥限界 833mm（夏に雨が集中（夏半年に年降水量の70%以上）なので r = 20 × (27.6 + 14)）→ 乾燥帯（B）ではない</li><li>最寒月平均気温 24.9℃ ≧ 18℃ → 熱帯（A）</li><li>最少雨月 1mm が 60mm と 31mm（100 − 年降水量/25）を下回る → はっきりした乾季のあるサバナ気候（Aw）</li></ol>
+        <p class="label">特徴</p>
+        <p>雨季と乾季が明瞭。乾季には草が枯れる。</p>
+        <p>植生：疎林と長草草原（サバナ）／土壌：ラトソル</p>
+        <p class="tap">👆 タップで表に戻る</p>
+      </div>
+    </div>
+  </div>
+  
+  <div class="flip-card" data-zone="B" hidden tabindex="0"
+       role="button" aria-label="タップしてカードを裏返す">
+    <div class="flip-inner">
+      <div class="face front">
+        <p class="face-title">この都市の気候区は？</p>
+        <div class="chart"><svg viewBox="0 0 400 380" class="climograph hyther" role="img" aria-label="ハイサーグラフ" xmlns="http://www.w3.org/2000/svg"><line x1="44" y1="340.0" x2="384" y2="340.0" class="grid"/><text x="38" y="344.0" class="lbl t" text-anchor="end">-10</text><line x1="44" y1="260.5" x2="384" y2="260.5" class="axis zero"/><text x="38" y="264.5" class="lbl t" text-anchor="end">0</text><line x1="44" y1="181.0" x2="384" y2="181.0" class="grid"/><text x="38" y="185.0" class="lbl t" text-anchor="end">10</text><line x1="44" y1="101.5" x2="384" y2="101.5" class="grid"/><text x="38" y="105.5" class="lbl t" text-anchor="end">20</text><line x1="44" y1="22.0" x2="384" y2="22.0" class="grid"/><text x="38" y="26.0" class="lbl t" text-anchor="end">30</text><line x1="44.0" y1="22" x2="44.0" y2="340" class="grid"/><text x="44.0" y="355" class="lbl p" text-anchor="middle">0</text><line x1="384.0" y1="22" x2="384.0" y2="340" class="grid"/><text x="384.0" y="355" class="lbl p" text-anchor="middle">100</text><rect x="44" y="22" width="340" height="318" class="frame"/><polyline points="61.0,149.2 57.6,140.5 57.6,120.6 47.4,92.0 44.0,64.9 44.0,45.1 44.0,41.1 44.0,41.1 44.0,53.8 47.4,74.5 54.2,109.5 61.0,138.1 61.0,149.2" class="line"/><circle cx="61.0" cy="149.2" r="5" class="dot first"><title>1月 14.0℃ 5mm</title></circle><text x="62.7" y="162.6" class="mon" text-anchor="middle">1</text><circle cx="57.6" cy="140.5" r="3.5" class="dot"><title>2月 15.1℃ 4mm</title></circle><text x="59.0" y="153.9" class="mon" text-anchor="middle">2</text><circle cx="57.6" cy="120.6" r="3.5" class="dot"><title>3月 17.6℃ 4mm</title></circle><text x="59.8" y="133.8" class="mon" text-anchor="middle">3</text><circle cx="47.4" cy="92.0" r="3.5" class="dot"><title>4月 21.2℃ 1mm</title></circle><text x="39.9" y="102.1" class="mon" text-anchor="middle">4</text><circle cx="44.0" cy="64.9" r="3.5" class="dot"><title>5月 24.6℃ 0mm</title></circle><text x="41.4" y="58.8" class="mon" text-anchor="middle">5</text><circle cx="44.0" cy="45.1" r="3.5" class="dot"><title>6月 27.1℃ 0mm</title></circle><text x="42.5" y="38.7" class="mon" text-anchor="middle">6</text><circle cx="44.0" cy="41.1" r="3.5" class="dot"><title>7月 27.6℃ 0mm</title></circle><text x="42.7" y="34.7" class="mon" text-anchor="middle">7</text><circle cx="44.0" cy="41.1" r="3.5" class="dot"><title>8月 27.6℃ 0mm</title></circle><text x="42.7" y="34.7" class="mon" text-anchor="middle">8</text><circle cx="44.0" cy="53.8" r="3.5" class="dot"><title>9月 26.0℃ 0mm</title></circle><text x="42.2" y="47.5" class="mon" text-anchor="middle">9</text><circle cx="47.4" cy="74.5" r="3.5" class="dot"><title>10月 23.4℃ 1mm</title></circle><text x="45.3" y="68.2" class="mon" text-anchor="middle">10</text><circle cx="54.2" cy="109.5" r="3.5" class="dot"><title>11月 19.0℃ 3mm</title></circle><text x="56.0" y="122.8" class="mon" text-anchor="middle">11</text><circle cx="61.0" cy="138.1" r="3.5" class="dot"><title>12月 15.4℃ 5mm</title></circle><text x="63.1" y="151.3" class="mon" text-anchor="middle">12</text><text x="38" y="15" class="lbl t" text-anchor="end">℃</text><text x="214.0" y="374" class="lbl p" text-anchor="middle">降水量（mm）</text></svg></div>
+        <p class="hint">北半球・白丸○が1月</p>
+        <p class="tap">👆 タップして答えを見る</p>
+      </div>
+      <div class="face back zone-bg-B">
+        <p class="answer-code">BW（砂漠気候）</p>
+        <p class="answer-city">カイロ（エジプト）</p>
+        <p class="label">判定の手順</p>
+        <ol class="steps"><li>最暖月平均気温 27.6℃ ≧ 10℃ → 寒帯（E）ではない</li><li>年降水量 23mm &lt; 乾燥限界 431mm（冬に雨が集中（冬半年に年降水量の70%以上）なので r = 20 × (21.6 + 0)）→ 乾燥帯（B）</li><li>年降水量が乾燥限界の半分（216mm）未満 → 砂漠気候（BW）</li></ol>
+        <p class="label">特徴</p>
+        <p>降水量が極めて少なく、気温の日較差が大きい。</p>
+        <p>植生：ほとんどない（オアシス周辺を除く）／土壌：砂漠土</p>
+        <p class="tap">👆 タップで表に戻る</p>
+      </div>
+    </div>
+  </div>
+  
+  <div class="flip-card" data-zone="B" hidden tabindex="0"
+       role="button" aria-label="タップしてカードを裏返す">
+    <div class="flip-inner">
+      <div class="face front">
+        <p class="face-title">この都市の気候区は？</p>
+        <div class="chart"><svg viewBox="0 0 400 380" class="climograph hyther" role="img" aria-label="ハイサーグラフ" xmlns="http://www.w3.org/2000/svg"><line x1="44" y1="340.0" x2="384" y2="340.0" class="grid"/><text x="38" y="344.0" class="lbl t" text-anchor="end">-10</text><line x1="44" y1="276.4" x2="384" y2="276.4" class="axis zero"/><text x="38" y="280.4" class="lbl t" text-anchor="end">0</text><line x1="44" y1="212.8" x2="384" y2="212.8" class="grid"/><text x="38" y="216.8" class="lbl t" text-anchor="end">10</text><line x1="44" y1="149.2" x2="384" y2="149.2" class="grid"/><text x="38" y="153.2" class="lbl t" text-anchor="end">20</text><line x1="44" y1="85.6" x2="384" y2="85.6" class="grid"/><text x="38" y="89.6" class="lbl t" text-anchor="end">30</text><line x1="44" y1="22.0" x2="384" y2="22.0" class="grid"/><text x="38" y="26.0" class="lbl t" text-anchor="end">40</text><line x1="44.0" y1="22" x2="44.0" y2="340" class="grid"/><text x="44.0" y="355" class="lbl p" text-anchor="middle">0</text><line x1="384.0" y1="22" x2="384.0" y2="340" class="grid"/><text x="384.0" y="355" class="lbl p" text-anchor="middle">100</text><rect x="44" y="22" width="340" height="318" class="frame"/><polyline points="84.8,184.8 71.2,168.3 118.8,140.9 129.0,107.2 78.0,69.1 44.0,51.3 44.0,43.6 44.0,46.2 44.0,64.6 47.4,100.9 64.4,144.1 88.2,175.3 84.8,184.8" class="line"/><circle cx="84.8" cy="184.8" r="5" class="dot first"><title>1月 14.4℃ 12mm</title></circle><text x="86.5" y="198.2" class="mon" text-anchor="middle">1</text><circle cx="71.2" cy="168.3" r="3.5" class="dot"><title>2月 17.0℃ 8mm</title></circle><text x="71.2" y="181.8" class="mon" text-anchor="middle">2</text><circle cx="118.8" cy="140.9" r="3.5" class="dot"><title>3月 21.3℃ 22mm</title></circle><text x="127.0" y="150.1" class="mon" text-anchor="middle">3</text><circle cx="129.0" cy="107.2" r="3.5" class="dot"><title>4月 26.6℃ 25mm</title></circle><text x="139.0" y="110.6" class="mon" text-anchor="middle">4</text><circle cx="78.0" cy="69.1" r="3.5" class="dot"><title>5月 32.6℃ 10mm</title></circle><text x="79.6" y="62.7" class="mon" text-anchor="middle">5</text><circle cx="44.0" cy="51.3" r="3.5" class="dot"><title>6月 35.4℃ 0mm</title></circle><text x="39.6" y="45.8" class="mon" text-anchor="middle">6</text><circle cx="44.0" cy="43.6" r="3.5" class="dot"><title>7月 36.6℃ 0mm</title></circle><text x="40.1" y="37.9" class="mon" text-anchor="middle">7</text><circle cx="44.0" cy="46.2" r="3.5" class="dot"><title>8月 36.2℃ 0mm</title></circle><text x="39.9" y="40.5" class="mon" text-anchor="middle">8</text><circle cx="44.0" cy="64.6" r="3.5" class="dot"><title>9月 33.3℃ 0mm</title></circle><text x="38.7" y="59.7" class="mon" text-anchor="middle">9</text><circle cx="47.4" cy="100.9" r="3.5" class="dot"><title>10月 27.6℃ 1mm</title></circle><text x="37.8" y="101.5" class="mon" text-anchor="middle">10</text><circle cx="64.4" cy="144.1" r="3.5" class="dot"><title>11月 20.8℃ 6mm</title></circle><text x="62.5" y="157.4" class="mon" text-anchor="middle">11</text><circle cx="88.2" cy="175.3" r="3.5" class="dot"><title>12月 15.9℃ 13mm</title></circle><text x="90.6" y="188.5" class="mon" text-anchor="middle">12</text><text x="38" y="15" class="lbl t" text-anchor="end">℃</text><text x="214.0" y="374" class="lbl p" text-anchor="middle">降水量（mm）</text></svg></div>
+        <p class="hint">北半球・白丸○が1月</p>
+        <p class="tap">👆 タップして答えを見る</p>
+      </div>
+      <div class="face back zone-bg-B">
+        <p class="answer-code">BW（砂漠気候）</p>
+        <p class="answer-city">リヤド（サウジアラビア）</p>
+        <p class="label">判定の手順</p>
+        <ol class="steps"><li>最暖月平均気温 36.6℃ ≧ 10℃ → 寒帯（E）ではない</li><li>年降水量 97mm &lt; 乾燥限界 669mm（年中ほぼ平均的に降るなので r = 20 × (26.5 + 7)）→ 乾燥帯（B）</li><li>年降水量が乾燥限界の半分（335mm）未満 → 砂漠気候（BW）</li></ol>
+        <p class="label">特徴</p>
+        <p>降水量が極めて少なく、気温の日較差が大きい。</p>
+        <p>植生：ほとんどない（オアシス周辺を除く）／土壌：砂漠土</p>
+        <p class="tap">👆 タップで表に戻る</p>
+      </div>
+    </div>
+  </div>
+  
+  <div class="flip-card" data-zone="B" hidden tabindex="0"
+       role="button" aria-label="タップしてカードを裏返す">
+    <div class="flip-inner">
+      <div class="face front">
+        <p class="face-title">この都市の気候区は？</p>
+        <div class="chart"><svg viewBox="0 0 400 380" class="climograph hyther" role="img" aria-label="ハイサーグラフ" xmlns="http://www.w3.org/2000/svg"><line x1="44" y1="340.0" x2="384" y2="340.0" class="grid"/><text x="38" y="344.0" class="lbl t" text-anchor="end">-10</text><line x1="44" y1="276.4" x2="384" y2="276.4" class="axis zero"/><text x="38" y="280.4" class="lbl t" text-anchor="end">0</text><line x1="44" y1="212.8" x2="384" y2="212.8" class="grid"/><text x="38" y="216.8" class="lbl t" text-anchor="end">10</text><line x1="44" y1="149.2" x2="384" y2="149.2" class="grid"/><text x="38" y="153.2" class="lbl t" text-anchor="end">20</text><line x1="44" y1="85.6" x2="384" y2="85.6" class="grid"/><text x="38" y="89.6" class="lbl t" text-anchor="end">30</text><line x1="44" y1="22.0" x2="384" y2="22.0" class="grid"/><text x="38" y="26.0" class="lbl t" text-anchor="end">40</text><line x1="44.0" y1="22" x2="44.0" y2="340" class="grid"/><text x="44.0" y="355" class="lbl p" text-anchor="middle">0</text><line x1="384.0" y1="22" x2="384.0" y2="340" class="grid"/><text x="384.0" y="355" class="lbl p" text-anchor="middle">100</text><rect x="44" y="22" width="340" height="318" class="frame"/><polyline points="169.8,252.9 159.6,235.7 186.8,205.2 132.4,168.3 88.2,133.3 50.8,97.7 50.8,79.9 47.4,86.2 47.4,113.6 84.8,156.8 146.0,205.2 163.0,238.9 169.8,252.9" class="line"/><circle cx="169.8" cy="252.9" r="5" class="dot first"><title>1月 3.7℃ 37mm</title></circle><text x="175.4" y="264.7" class="mon" text-anchor="middle">1</text><circle cx="159.6" cy="235.7" r="3.5" class="dot"><title>2月 6.4℃ 34mm</title></circle><text x="165.3" y="247.4" class="mon" text-anchor="middle">2</text><circle cx="186.8" cy="205.2" r="3.5" class="dot"><title>3月 11.2℃ 42mm</title></circle><text x="195.6" y="213.4" class="mon" text-anchor="middle">3</text><circle cx="132.4" cy="168.3" r="3.5" class="dot"><title>4月 17.0℃ 26mm</title></circle><text x="142.3" y="173.5" class="mon" text-anchor="middle">4</text><circle cx="88.2" cy="133.3" r="3.5" class="dot"><title>5月 22.5℃ 13mm</title></circle><text x="82.4" y="128.7" class="mon" text-anchor="middle">5</text><circle cx="50.8" cy="97.7" r="3.5" class="dot"><title>6月 28.1℃ 2mm</title></circle><text x="44.1" y="93.7" class="mon" text-anchor="middle">6</text><circle cx="50.8" cy="79.9" r="3.5" class="dot"><title>7月 30.9℃ 2mm</title></circle><text x="45.0" y="75.2" class="mon" text-anchor="middle">7</text><circle cx="47.4" cy="86.2" r="3.5" class="dot"><title>8月 29.9℃ 1mm</title></circle><text x="41.1" y="82.0" class="mon" text-anchor="middle">8</text><circle cx="47.4" cy="113.6" r="3.5" class="dot"><title>9月 25.6℃ 1mm</title></circle><text x="39.6" y="110.8" class="mon" text-anchor="middle">9</text><circle cx="84.8" cy="156.8" r="3.5" class="dot"><title>10月 18.8℃ 12mm</title></circle><text x="75.2" y="157.5" class="mon" text-anchor="middle">10</text><circle cx="146.0" cy="205.2" r="3.5" class="dot"><title>11月 11.2℃ 30mm</title></circle><text x="152.6" y="216.2" class="mon" text-anchor="middle">11</text><circle cx="163.0" cy="238.9" r="3.5" class="dot"><title>12月 5.9℃ 35mm</title></circle><text x="168.8" y="250.6" class="mon" text-anchor="middle">12</text><text x="38" y="15" class="lbl t" text-anchor="end">℃</text><text x="214.0" y="374" class="lbl p" text-anchor="middle">降水量（mm）</text></svg></div>
+        <p class="hint">北半球・白丸○が1月</p>
+        <p class="tap">👆 タップして答えを見る</p>
+      </div>
+      <div class="face back zone-bg-B">
+        <p class="answer-code">BS（ステップ気候）</p>
+        <p class="answer-city">テヘラン（イラン）</p>
+        <p class="label">判定の手順</p>
+        <ol class="steps"><li>最暖月平均気温 30.9℃ ≧ 10℃ → 寒帯（E）ではない</li><li>年降水量 235mm &lt; 乾燥限界 352mm（冬に雨が集中（冬半年に年降水量の70%以上）なので r = 20 × (17.6 + 0)）→ 乾燥帯（B）</li><li>年降水量が乾燥限界の半分（176mm）以上 → ステップ気候（BS）</li></ol>
+        <p class="label">特徴</p>
+        <p>短い雨季があり、砂漠の周辺に分布。</p>
+        <p>植生：丈の短い草原（ステップ）／土壌：チェルノーゼム・栗色土</p>
+        <p class="tap">👆 タップで表に戻る</p>
+      </div>
+    </div>
+  </div>
+  
+  <div class="flip-card" data-zone="B" hidden tabindex="0"
+       role="button" aria-label="タップしてカードを裏返す">
+    <div class="flip-inner">
+      <div class="face front">
+        <p class="face-title">この都市の気候区は？</p>
+        <div class="chart"><svg viewBox="0 0 400 380" class="climograph hyther" role="img" aria-label="ハイサーグラフ" xmlns="http://www.w3.org/2000/svg"><line x1="44" y1="340.0" x2="384" y2="340.0" class="grid"/><text x="38" y="344.0" class="lbl t" text-anchor="end">-10</text><line x1="44" y1="260.5" x2="384" y2="260.5" class="axis zero"/><text x="38" y="264.5" class="lbl t" text-anchor="end">0</text><line x1="44" y1="181.0" x2="384" y2="181.0" class="grid"/><text x="38" y="185.0" class="lbl t" text-anchor="end">10</text><line x1="44" y1="101.5" x2="384" y2="101.5" class="grid"/><text x="38" y="105.5" class="lbl t" text-anchor="end">20</text><line x1="44" y1="22.0" x2="384" y2="22.0" class="grid"/><text x="38" y="26.0" class="lbl t" text-anchor="end">30</text><line x1="44.0" y1="22" x2="44.0" y2="340" class="grid"/><text x="44.0" y="355" class="lbl p" text-anchor="middle">0</text><line x1="214.0" y1="22" x2="214.0" y2="340" class="grid"/><text x="214.0" y="355" class="lbl p" text-anchor="middle">100</text><line x1="384.0" y1="22" x2="384.0" y2="340" class="grid"/><text x="384.0" y="355" class="lbl p" text-anchor="middle">200</text><rect x="44" y="22" width="340" height="318" class="frame"/><polyline points="44.0,90.4 45.7,94.3 44.0,91.2 44.0,87.2 45.7,77.7 66.1,55.4 163.0,45.9 324.5,43.5 273.5,41.9 95.0,41.9 47.4,57.0 47.4,74.5 44.0,90.4" class="line"/><circle cx="44.0" cy="90.4" r="5" class="dot first"><title>1月 21.4℃ 0mm</title></circle><text x="34.7" y="97.6" class="mon" text-anchor="middle">1</text><circle cx="45.7" cy="94.3" r="3.5" class="dot"><title>2月 20.9℃ 1mm</title></circle><text x="36.7" y="102.2" class="mon" text-anchor="middle">2</text><circle cx="44.0" cy="91.2" r="3.5" class="dot"><title>3月 21.3℃ 0mm</title></circle><text x="34.8" y="98.5" class="mon" text-anchor="middle">3</text><circle cx="44.0" cy="87.2" r="3.5" class="dot"><title>4月 21.8℃ 0mm</title></circle><text x="34.5" y="94.0" class="mon" text-anchor="middle">4</text><circle cx="45.7" cy="77.7" r="3.5" class="dot"><title>5月 23.0℃ 1mm</title></circle><text x="35.9" y="83.0" class="mon" text-anchor="middle">5</text><circle cx="66.1" cy="55.4" r="3.5" class="dot"><title>6月 25.8℃ 13mm</title></circle><text x="56.5" y="56.0" class="mon" text-anchor="middle">6</text><circle cx="163.0" cy="45.9" r="3.5" class="dot"><title>7月 27.0℃ 70mm</title></circle><text x="172.4" y="46.0" class="mon" text-anchor="middle">7</text><circle cx="324.5" cy="43.5" r="3.5" class="dot"><title>8月 27.3℃ 165mm</title></circle><text x="334.4" y="45.9" class="mon" text-anchor="middle">8</text><circle cx="273.5" cy="41.9" r="3.5" class="dot"><title>9月 27.5℃ 135mm</title></circle><text x="283.4" y="43.9" class="mon" text-anchor="middle">9</text><circle cx="95.0" cy="41.9" r="3.5" class="dot"><title>10月 27.5℃ 30mm</title></circle><text x="91.8" y="35.9" class="mon" text-anchor="middle">10</text><circle cx="47.4" cy="57.0" r="3.5" class="dot"><title>11月 25.6℃ 2mm</title></circle><text x="37.5" y="58.8" class="mon" text-anchor="middle">11</text><circle cx="47.4" cy="74.5" r="3.5" class="dot"><title>12月 23.4℃ 2mm</title></circle><text x="37.5" y="79.3" class="mon" text-anchor="middle">12</text><text x="38" y="15" class="lbl t" text-anchor="end">℃</text><text x="214.0" y="374" class="lbl p" text-anchor="middle">降水量（mm）</text></svg></div>
+        <p class="hint">北半球・白丸○が1月</p>
+        <p class="tap">👆 タップして答えを見る</p>
+      </div>
+      <div class="face back zone-bg-B">
+        <p class="answer-code">BS（ステップ気候）</p>
+        <p class="answer-city">ダカール（セネガル）</p>
+        <p class="label">判定の手順</p>
+        <ol class="steps"><li>最暖月平均気温 27.5℃ ≧ 10℃ → 寒帯（E）ではない</li><li>年降水量 419mm &lt; 乾燥限界 768mm（夏に雨が集中（夏半年に年降水量の70%以上）なので r = 20 × (24.4 + 14)）→ 乾燥帯（B）</li><li>年降水量が乾燥限界の半分（384mm）以上 → ステップ気候（BS）</li></ol>
+        <p class="label">特徴</p>
+        <p>短い雨季があり、砂漠の周辺に分布。</p>
+        <p>植生：丈の短い草原（ステップ）／土壌：チェルノーゼム・栗色土</p>
+        <p class="tap">👆 タップで表に戻る</p>
+      </div>
+    </div>
+  </div>
+  
+  <div class="flip-card" data-zone="C" hidden tabindex="0"
+       role="button" aria-label="タップしてカードを裏返す">
+    <div class="flip-inner">
+      <div class="face front">
+        <p class="face-title">この都市の気候区は？</p>
+        <div class="chart"><svg viewBox="0 0 400 380" class="climograph hyther" role="img" aria-label="ハイサーグラフ" xmlns="http://www.w3.org/2000/svg"><line x1="44" y1="340.0" x2="384" y2="340.0" class="grid"/><text x="38" y="344.0" class="lbl t" text-anchor="end">-10</text><line x1="44" y1="260.5" x2="384" y2="260.5" class="axis zero"/><text x="38" y="264.5" class="lbl t" text-anchor="end">0</text><line x1="44" y1="181.0" x2="384" y2="181.0" class="grid"/><text x="38" y="185.0" class="lbl t" text-anchor="end">10</text><line x1="44" y1="101.5" x2="384" y2="101.5" class="grid"/><text x="38" y="105.5" class="lbl t" text-anchor="end">20</text><line x1="44" y1="22.0" x2="384" y2="22.0" class="grid"/><text x="38" y="26.0" class="lbl t" text-anchor="end">30</text><line x1="44.0" y1="22" x2="44.0" y2="340" class="grid"/><text x="44.0" y="355" class="lbl p" text-anchor="middle">0</text><line x1="214.0" y1="22" x2="214.0" y2="340" class="grid"/><text x="214.0" y="355" class="lbl p" text-anchor="middle">100</text><line x1="384.0" y1="22" x2="384.0" y2="340" class="grid"/><text x="384.0" y="355" class="lbl p" text-anchor="middle">200</text><rect x="44" y="22" width="340" height="318" class="frame"/><polyline points="157.9,200.9 168.1,195.3 142.6,179.4 181.7,160.3 134.1,123.8 101.8,92.8 76.3,68.9 106.9,65.7 168.1,95.1 236.1,130.1 239.5,169.9 181.7,193.7 157.9,200.9" class="line"/><circle cx="157.9" cy="200.9" r="5" class="dot first"><title>1月 7.5℃ 67mm</title></circle><text x="157.9" y="214.4" class="mon" text-anchor="middle">1</text><circle cx="168.1" cy="195.3" r="3.5" class="dot"><title>2月 8.2℃ 73mm</title></circle><text x="169.9" y="208.6" class="mon" text-anchor="middle">2</text><circle cx="142.6" cy="179.4" r="3.5" class="dot"><title>3月 10.2℃ 58mm</title></circle><text x="139.0" y="192.2" class="mon" text-anchor="middle">3</text><circle cx="181.7" cy="160.3" r="3.5" class="dot"><title>4月 12.6℃ 81mm</title></circle><text x="189.3" y="170.4" class="mon" text-anchor="middle">4</text><circle cx="134.1" cy="123.8" r="3.5" class="dot"><title>5月 17.2℃ 53mm</title></circle><text x="125.8" y="121.7" class="mon" text-anchor="middle">5</text><circle cx="101.8" cy="92.8" r="3.5" class="dot"><title>6月 21.1℃ 34mm</title></circle><text x="94.1" y="89.8" class="mon" text-anchor="middle">6</text><circle cx="76.3" cy="68.9" r="3.5" class="dot"><title>7月 24.1℃ 19mm</title></circle><text x="68.7" y="65.9" class="mon" text-anchor="middle">7</text><circle cx="106.9" cy="65.7" r="3.5" class="dot"><title>8月 24.5℃ 37mm</title></circle><text x="101.2" y="61.0" class="mon" text-anchor="middle">8</text><circle cx="168.1" cy="95.1" r="3.5" class="dot"><title>9月 20.8℃ 73mm</title></circle><text x="170.3" y="88.9" class="mon" text-anchor="middle">9</text><circle cx="236.1" cy="130.1" r="3.5" class="dot"><title>10月 16.4℃ 113mm</title></circle><text x="246.0" y="132.4" class="mon" text-anchor="middle">10</text><circle cx="239.5" cy="169.9" r="3.5" class="dot"><title>11月 11.4℃ 115mm</title></circle><text x="248.9" y="176.8" class="mon" text-anchor="middle">11</text><circle cx="181.7" cy="193.7" r="3.5" class="dot"><title>12月 8.4℃ 81mm</title></circle><text x="185.7" y="206.4" class="mon" text-anchor="middle">12</text><text x="38" y="15" class="lbl t" text-anchor="end">℃</text><text x="214.0" y="374" class="lbl p" text-anchor="middle">降水量（mm）</text></svg></div>
+        <p class="hint">北半球・白丸○が1月</p>
+        <p class="tap">👆 タップして答えを見る</p>
+      </div>
+      <div class="face back zone-bg-C">
+        <p class="answer-code">Cs（地中海性気候）</p>
+        <p class="answer-city">ローマ（イタリア）</p>
+        <p class="label">判定の手順</p>
+        <ol class="steps"><li>最暖月平均気温 24.5℃ ≧ 10℃ → 寒帯（E）ではない</li><li>年降水量 804mm ≧ 乾燥限界 444mm（年中ほぼ平均的に降るなので r = 20 × (15.2 + 7)）→ 乾燥帯（B）ではない</li><li>−3℃ ≦ 最寒月平均気温 7.5℃ &lt; 18℃ → 温帯（C）</li><li>夏の最少雨月 19mm が冬の最多雨月 115mm の1/3未満 → 夏に乾燥する地中海性気候（Cs）</li></ol>
+        <p class="label">特徴</p>
+        <p>夏は高温乾燥、冬は温暖で湿潤。</p>
+        <p>植生：硬葉樹（オリーブ・コルクがしなど）／土壌：テラロッサ（石灰岩地域）</p>
+        <p class="tap">👆 タップで表に戻る</p>
+      </div>
+    </div>
+  </div>
+  
+  <div class="flip-card" data-zone="C" hidden tabindex="0"
+       role="button" aria-label="タップしてカードを裏返す">
+    <div class="flip-inner">
+      <div class="face front">
+        <p class="face-title">この都市の気候区は？</p>
+        <div class="chart"><svg viewBox="0 0 400 380" class="climograph hyther" role="img" aria-label="ハイサーグラフ" xmlns="http://www.w3.org/2000/svg"><line x1="44" y1="340.0" x2="384" y2="340.0" class="grid"/><text x="38" y="344.0" class="lbl t" text-anchor="end">-10</text><line x1="44" y1="260.5" x2="384" y2="260.5" class="axis zero"/><text x="38" y="264.5" class="lbl t" text-anchor="end">0</text><line x1="44" y1="181.0" x2="384" y2="181.0" class="grid"/><text x="38" y="185.0" class="lbl t" text-anchor="end">10</text><line x1="44" y1="101.5" x2="384" y2="101.5" class="grid"/><text x="38" y="105.5" class="lbl t" text-anchor="end">20</text><line x1="44" y1="22.0" x2="384" y2="22.0" class="grid"/><text x="38" y="26.0" class="lbl t" text-anchor="end">30</text><line x1="44.0" y1="22" x2="44.0" y2="340" class="grid"/><text x="44.0" y="355" class="lbl p" text-anchor="middle">0</text><line x1="214.0" y1="22" x2="214.0" y2="340" class="grid"/><text x="214.0" y="355" class="lbl p" text-anchor="middle">100</text><line x1="384.0" y1="22" x2="384.0" y2="340" class="grid"/><text x="384.0" y="355" class="lbl p" text-anchor="middle">200</text><rect x="44" y="22" width="340" height="318" class="frame"/><polyline points="69.5,65.7 66.1,62.5 76.3,77.7 106.9,103.1 197.0,130.1 259.9,149.2 290.5,156.4 253.1,152.4 180.0,141.2 112.0,124.6 81.4,100.7 61.0,82.4 69.5,65.7" class="line"/><circle cx="69.5" cy="65.7" r="5" class="dot first"><title>1月 24.5℃ 15mm</title></circle><text x="60.9" y="64.0" class="mon" text-anchor="middle">1</text><circle cx="66.1" cy="62.5" r="3.5" class="dot"><title>2月 24.9℃ 13mm</title></circle><text x="57.6" y="60.8" class="mon" text-anchor="middle">2</text><circle cx="76.3" cy="77.7" r="3.5" class="dot"><title>3月 23.0℃ 19mm</title></circle><text x="67.3" y="76.7" class="mon" text-anchor="middle">3</text><circle cx="106.9" cy="103.1" r="3.5" class="dot"><title>4月 19.8℃ 37mm</title></circle><text x="97.2" y="104.3" class="mon" text-anchor="middle">4</text><circle cx="197.0" cy="130.1" r="3.5" class="dot"><title>5月 16.4℃ 90mm</title></circle><text x="206.4" y="136.9" class="mon" text-anchor="middle">5</text><circle cx="259.9" cy="149.2" r="3.5" class="dot"><title>6月 14.0℃ 127mm</title></circle><text x="269.4" y="155.8" class="mon" text-anchor="middle">6</text><circle cx="290.5" cy="156.4" r="3.5" class="dot"><title>7月 13.1℃ 145mm</title></circle><text x="300.1" y="162.8" class="mon" text-anchor="middle">7</text><circle cx="253.1" cy="152.4" r="3.5" class="dot"><title>8月 13.6℃ 123mm</title></circle><text x="262.5" y="159.4" class="mon" text-anchor="middle">8</text><circle cx="180.0" cy="141.2" r="3.5" class="dot"><title>9月 15.0℃ 80mm</title></circle><text x="187.6" y="151.3" class="mon" text-anchor="middle">9</text><circle cx="112.0" cy="124.6" r="3.5" class="dot"><title>10月 17.1℃ 40mm</title></circle><text x="102.6" y="131.5" class="mon" text-anchor="middle">10</text><circle cx="81.4" cy="100.7" r="3.5" class="dot"><title>11月 20.1℃ 22mm</title></circle><text x="71.6" y="102.5" class="mon" text-anchor="middle">11</text><circle cx="61.0" cy="82.4" r="3.5" class="dot"><title>12月 22.4℃ 10mm</title></circle><text x="51.6" y="82.6" class="mon" text-anchor="middle">12</text><text x="38" y="15" class="lbl t" text-anchor="end">℃</text><text x="214.0" y="374" class="lbl p" text-anchor="middle">降水量（mm）</text></svg></div>
+        <p class="hint">南半球（夏は12〜2月）・白丸○が1月</p>
+        <p class="tap">👆 タップして答えを見る</p>
+      </div>
+      <div class="face back zone-bg-C">
+        <p class="answer-code">Cs（地中海性気候）</p>
+        <p class="answer-city">パース（オーストラリア）</p>
+        <p class="label">判定の手順</p>
+        <ol class="steps"><li>最暖月平均気温 24.9℃ ≧ 10℃ → 寒帯（E）ではない</li><li>年降水量 721mm ≧ 乾燥限界 373mm（冬に雨が集中（冬半年に年降水量の70%以上）なので r = 20 × (18.7 + 0)）→ 乾燥帯（B）ではない</li><li>−3℃ ≦ 最寒月平均気温 13.1℃ &lt; 18℃ → 温帯（C）</li><li>夏の最少雨月 10mm が冬の最多雨月 145mm の1/3未満 → 夏に乾燥する地中海性気候（Cs）</li></ol>
+        <p class="label">特徴</p>
+        <p>夏は高温乾燥、冬は温暖で湿潤。</p>
+        <p>植生：硬葉樹（オリーブ・コルクがしなど）／土壌：テラロッサ（石灰岩地域）</p>
+        <p class="tap">👆 タップで表に戻る</p>
+      </div>
+    </div>
+  </div>
+  
+  <div class="flip-card" data-zone="C" hidden tabindex="0"
+       role="button" aria-label="タップしてカードを裏返す">
+    <div class="flip-inner">
+      <div class="face front">
+        <p class="face-title">この都市の気候区は？</p>
+        <div class="chart"><svg viewBox="0 0 400 380" class="climograph hyther" role="img" aria-label="ハイサーグラフ" xmlns="http://www.w3.org/2000/svg"><line x1="44" y1="340.0" x2="384" y2="340.0" class="grid"/><text x="38" y="344.0" class="lbl t" text-anchor="end">-10</text><line x1="44" y1="260.5" x2="384" y2="260.5" class="axis zero"/><text x="38" y="264.5" class="lbl t" text-anchor="end">0</text><line x1="44" y1="181.0" x2="384" y2="181.0" class="grid"/><text x="38" y="185.0" class="lbl t" text-anchor="end">10</text><line x1="44" y1="101.5" x2="384" y2="101.5" class="grid"/><text x="38" y="105.5" class="lbl t" text-anchor="end">20</text><line x1="44" y1="22.0" x2="384" y2="22.0" class="grid"/><text x="38" y="26.0" class="lbl t" text-anchor="end">30</text><line x1="44.0" y1="22" x2="44.0" y2="340" class="grid"/><text x="44.0" y="355" class="lbl p" text-anchor="middle">0</text><line x1="112.0" y1="22" x2="112.0" y2="340" class="grid"/><text x="112.0" y="355" class="lbl p" text-anchor="middle">100</text><line x1="180.0" y1="22" x2="180.0" y2="340" class="grid"/><text x="180.0" y="355" class="lbl p" text-anchor="middle">200</text><line x1="248.0" y1="22" x2="248.0" y2="340" class="grid"/><text x="248.0" y="355" class="lbl p" text-anchor="middle">300</text><line x1="316.0" y1="22" x2="316.0" y2="340" class="grid"/><text x="316.0" y="355" class="lbl p" text-anchor="middle">400</text><line x1="384.0" y1="22" x2="384.0" y2="340" class="grid"/><text x="384.0" y="355" class="lbl p" text-anchor="middle">500</text><rect x="44" y="22" width="340" height="318" class="frame"/><polyline points="66.4,130.9 74.6,125.3 94.3,107.9 156.2,80.0 250.7,53.8 354.1,37.9 300.4,31.5 337.8,33.1 266.4,40.3 112.0,57.8 69.8,87.2 62.4,118.2 66.4,130.9" class="line"/><circle cx="66.4" cy="130.9" r="5" class="dot first"><title>1月 16.3℃ 33mm</title></circle><text x="57.5" y="138.9" class="mon" text-anchor="middle">1</text><circle cx="74.6" cy="125.3" r="3.5" class="dot"><title>2月 17.0℃ 45mm</title></circle><text x="65.6" y="133.2" class="mon" text-anchor="middle">2</text><circle cx="94.3" cy="107.9" r="3.5" class="dot"><title>3月 19.2℃ 74mm</title></circle><text x="85.0" y="115.0" class="mon" text-anchor="middle">3</text><circle cx="156.2" cy="80.0" r="3.5" class="dot"><title>4月 22.7℃ 165mm</title></circle><text x="146.4" y="85.6" class="mon" text-anchor="middle">4</text><circle cx="250.7" cy="53.8" r="3.5" class="dot"><title>5月 26.0℃ 304mm</title></circle><text x="260.3" y="54.4" class="mon" text-anchor="middle">5</text><circle cx="354.1" cy="37.9" r="3.5" class="dot"><title>6月 28.0℃ 456mm</title></circle><text x="363.9" y="39.3" class="mon" text-anchor="middle">6</text><circle cx="300.4" cy="31.5" r="3.5" class="dot"><title>7月 28.8℃ 377mm</title></circle><text x="309.8" y="31.7" class="mon" text-anchor="middle">7</text><circle cx="337.8" cy="33.1" r="3.5" class="dot"><title>8月 28.6℃ 432mm</title></circle><text x="347.4" y="34.1" class="mon" text-anchor="middle">8</text><circle cx="266.4" cy="40.3" r="3.5" class="dot"><title>9月 27.7℃ 327mm</title></circle><text x="275.6" y="40.1" class="mon" text-anchor="middle">9</text><circle cx="112.0" cy="57.8" r="3.5" class="dot"><title>10月 25.5℃ 100mm</title></circle><text x="102.3" y="58.7" class="mon" text-anchor="middle">10</text><circle cx="69.8" cy="87.2" r="3.5" class="dot"><title>11月 21.8℃ 38mm</title></circle><text x="59.9" y="91.8" class="mon" text-anchor="middle">11</text><circle cx="62.4" cy="118.2" r="3.5" class="dot"><title>12月 17.9℃ 27mm</title></circle><text x="53.0" y="125.2" class="mon" text-anchor="middle">12</text><text x="38" y="15" class="lbl t" text-anchor="end">℃</text><text x="214.0" y="374" class="lbl p" text-anchor="middle">降水量（mm）</text></svg></div>
+        <p class="hint">北半球・白丸○が1月</p>
+        <p class="tap">👆 タップして答えを見る</p>
+      </div>
+      <div class="face back zone-bg-C">
+        <p class="answer-code">Cw（温暖冬季少雨気候）</p>
+        <p class="answer-city">ホンコン（中国）</p>
+        <p class="label">判定の手順</p>
+        <ol class="steps"><li>最暖月平均気温 28.8℃ ≧ 10℃ → 寒帯（E）ではない</li><li>年降水量 2378mm ≧ 乾燥限界 746mm（夏に雨が集中（夏半年に年降水量の70%以上）なので r = 20 × (23.3 + 14)）→ 乾燥帯（B）ではない</li><li>−3℃ ≦ 最寒月平均気温 16.3℃ &lt; 18℃ → 温帯（C）</li><li>冬の最少雨月 27mm が夏の最多雨月 456mm の1/10未満 → 冬に乾燥する温暖冬季少雨気候（Cw）</li></ol>
+        <p class="label">特徴</p>
+        <p>夏は高温多雨、冬は乾燥。モンスーンの影響を受ける。</p>
+        <p>植生：照葉樹林／土壌：赤色土・黄色土</p>
+        <p class="tap">👆 タップで表に戻る</p>
+      </div>
+    </div>
+  </div>
+  
+  <div class="flip-card" data-zone="C" hidden tabindex="0"
+       role="button" aria-label="タップしてカードを裏返す">
+    <div class="flip-inner">
+      <div class="face front">
+        <p class="face-title">この都市の気候区は？</p>
+        <div class="chart"><svg viewBox="0 0 400 380" class="climograph hyther" role="img" aria-label="ハイサーグラフ" xmlns="http://www.w3.org/2000/svg"><line x1="44" y1="340.0" x2="384" y2="340.0" class="grid"/><text x="38" y="344.0" class="lbl t" text-anchor="end">-10</text><line x1="44" y1="260.5" x2="384" y2="260.5" class="axis zero"/><text x="38" y="264.5" class="lbl t" text-anchor="end">0</text><line x1="44" y1="181.0" x2="384" y2="181.0" class="grid"/><text x="38" y="185.0" class="lbl t" text-anchor="end">10</text><line x1="44" y1="101.5" x2="384" y2="101.5" class="grid"/><text x="38" y="105.5" class="lbl t" text-anchor="end">20</text><line x1="44" y1="22.0" x2="384" y2="22.0" class="grid"/><text x="38" y="26.0" class="lbl t" text-anchor="end">30</text><line x1="44.0" y1="22" x2="44.0" y2="340" class="grid"/><text x="44.0" y="355" class="lbl p" text-anchor="middle">0</text><line x1="157.3" y1="22" x2="157.3" y2="340" class="grid"/><text x="157.3" y="355" class="lbl p" text-anchor="middle">100</text><line x1="270.7" y1="22" x2="270.7" y2="340" class="grid"/><text x="270.7" y="355" class="lbl p" text-anchor="middle">200</text><line x1="384.0" y1="22" x2="384.0" y2="340" class="grid"/><text x="384.0" y="355" class="lbl p" text-anchor="middle">300</text><rect x="44" y="22" width="340" height="318" class="frame"/><polyline points="112.0,217.6 107.5,212.0 177.7,185.8 185.7,146.8 200.4,111.0 234.4,86.4 218.5,56.2 234.4,46.6 282.0,75.3 268.4,117.4 149.4,161.1 101.8,199.3 112.0,217.6" class="line"/><circle cx="112.0" cy="217.6" r="5" class="dot first"><title>1月 5.4℃ 60mm</title></circle><text x="105.2" y="228.4" class="mon" text-anchor="middle">1</text><circle cx="107.5" cy="212.0" r="3.5" class="dot"><title>2月 6.1℃ 56mm</title></circle><text x="100.2" y="222.4" class="mon" text-anchor="middle">2</text><circle cx="177.7" cy="185.8" r="3.5" class="dot"><title>3月 9.4℃ 118mm</title></circle><text x="175.5" y="199.0" class="mon" text-anchor="middle">3</text><circle cx="185.7" cy="146.8" r="3.5" class="dot"><title>4月 14.3℃ 125mm</title></circle><text x="182.8" y="159.9" class="mon" text-anchor="middle">4</text><circle cx="200.4" cy="111.0" r="3.5" class="dot"><title>5月 18.8℃ 138mm</title></circle><text x="204.6" y="105.5" class="mon" text-anchor="middle">5</text><circle cx="234.4" cy="86.4" r="3.5" class="dot"><title>6月 21.9℃ 168mm</title></circle><text x="241.2" y="82.6" class="mon" text-anchor="middle">6</text><circle cx="218.5" cy="56.2" r="3.5" class="dot"><title>7月 25.7℃ 154mm</title></circle><text x="222.0" y="50.3" class="mon" text-anchor="middle">7</text><circle cx="234.4" cy="46.6" r="3.5" class="dot"><title>8月 26.9℃ 168mm</title></circle><text x="239.0" y="41.2" class="mon" text-anchor="middle">8</text><circle cx="282.0" cy="75.3" r="3.5" class="dot"><title>9月 23.3℃ 210mm</title></circle><text x="290.4" y="73.4" class="mon" text-anchor="middle">9</text><circle cx="268.4" cy="117.4" r="3.5" class="dot"><title>10月 18.0℃ 198mm</title></circle><text x="278.2" y="118.8" class="mon" text-anchor="middle">10</text><circle cx="149.4" cy="161.1" r="3.5" class="dot"><title>11月 12.5℃ 93mm</title></circle><text x="141.1" y="170.2" class="mon" text-anchor="middle">11</text><circle cx="101.8" cy="199.3" r="3.5" class="dot"><title>12月 7.7℃ 51mm</title></circle><text x="93.8" y="208.7" class="mon" text-anchor="middle">12</text><text x="38" y="15" class="lbl t" text-anchor="end">℃</text><text x="214.0" y="374" class="lbl p" text-anchor="middle">降水量（mm）</text></svg></div>
+        <p class="hint">北半球・白丸○が1月</p>
+        <p class="tap">👆 タップして答えを見る</p>
+      </div>
+      <div class="face back zone-bg-C">
+        <p class="answer-code">Cfa（温暖湿潤気候）</p>
+        <p class="answer-city">東京（日本）</p>
+        <p class="label">判定の手順</p>
+        <ol class="steps"><li>最暖月平均気温 26.9℃ ≧ 10℃ → 寒帯（E）ではない</li><li>年降水量 1539mm ≧ 乾燥限界 457mm（年中ほぼ平均的に降るなので r = 20 × (15.8 + 7)）→ 乾燥帯（B）ではない</li><li>−3℃ ≦ 最寒月平均気温 5.4℃ &lt; 18℃ → 温帯（C）</li><li>夏・冬ともにはっきりした乾季がない → 年中湿潤（f）</li><li>最暖月平均気温 26.9℃ ≧ 22℃ → 温暖湿潤気候（Cfa）</li></ol>
+        <p class="label">特徴</p>
+        <p>年中湿潤で四季が明瞭。夏は高温（最暖月22℃以上）。</p>
+        <p>植生：照葉樹林・落葉広葉樹林・混合林／土壌：褐色森林土・赤黄色土</p>
+        <p class="tap">👆 タップで表に戻る</p>
+      </div>
+    </div>
+  </div>
+  
+  <div class="flip-card" data-zone="C" hidden tabindex="0"
+       role="button" aria-label="タップしてカードを裏返す">
+    <div class="flip-inner">
+      <div class="face front">
+        <p class="face-title">この都市の気候区は？</p>
+        <div class="chart"><svg viewBox="0 0 400 380" class="climograph hyther" role="img" aria-label="ハイサーグラフ" xmlns="http://www.w3.org/2000/svg"><line x1="44" y1="340.0" x2="384" y2="340.0" class="grid"/><text x="38" y="344.0" class="lbl t" text-anchor="end">-10</text><line x1="44" y1="260.5" x2="384" y2="260.5" class="axis zero"/><text x="38" y="264.5" class="lbl t" text-anchor="end">0</text><line x1="44" y1="181.0" x2="384" y2="181.0" class="grid"/><text x="38" y="185.0" class="lbl t" text-anchor="end">10</text><line x1="44" y1="101.5" x2="384" y2="101.5" class="grid"/><text x="38" y="105.5" class="lbl t" text-anchor="end">20</text><line x1="44" y1="22.0" x2="384" y2="22.0" class="grid"/><text x="38" y="26.0" class="lbl t" text-anchor="end">30</text><line x1="44.0" y1="22" x2="44.0" y2="340" class="grid"/><text x="44.0" y="355" class="lbl p" text-anchor="middle">0</text><line x1="214.0" y1="22" x2="214.0" y2="340" class="grid"/><text x="214.0" y="355" class="lbl p" text-anchor="middle">100</text><line x1="384.0" y1="22" x2="384.0" y2="340" class="grid"/><text x="384.0" y="355" class="lbl p" text-anchor="middle">200</text><rect x="44" y="22" width="340" height="318" class="frame"/><polyline points="251.4,65.7 253.1,72.9 305.8,88.8 225.9,119.0 200.4,144.4 129.0,168.3 134.1,173.1 151.1,160.3 176.6,144.4 280.3,119.8 266.7,95.9 219.1,76.1 251.4,65.7" class="line"/><circle cx="251.4" cy="65.7" r="5" class="dot first"><title>1月 24.5℃ 122mm</title></circle><text x="256.9" y="60.9" class="mon" text-anchor="middle">1</text><circle cx="253.1" cy="72.9" r="3.5" class="dot"><title>2月 23.6℃ 123mm</title></circle><text x="259.4" y="68.6" class="mon" text-anchor="middle">2</text><circle cx="305.8" cy="88.8" r="3.5" class="dot"><title>3月 21.6℃ 154mm</title></circle><text x="315.3" y="89.1" class="mon" text-anchor="middle">3</text><circle cx="225.9" cy="119.0" r="3.5" class="dot"><title>4月 17.8℃ 107mm</title></circle><text x="235.9" y="122.4" class="mon" text-anchor="middle">4</text><circle cx="200.4" cy="144.4" r="3.5" class="dot"><title>5月 14.6℃ 92mm</title></circle><text x="195.1" y="156.4" class="mon" text-anchor="middle">5</text><circle cx="129.0" cy="168.3" r="3.5" class="dot"><title>6月 11.6℃ 50mm</title></circle><text x="120.3" y="176.7" class="mon" text-anchor="middle">6</text><circle cx="134.1" cy="173.1" r="3.5" class="dot"><title>7月 11.0℃ 53mm</title></circle><text x="125.7" y="182.0" class="mon" text-anchor="middle">7</text><circle cx="151.1" cy="160.3" r="3.5" class="dot"><title>8月 12.6℃ 63mm</title></circle><text x="142.7" y="169.2" class="mon" text-anchor="middle">8</text><circle cx="176.6" cy="144.4" r="3.5" class="dot"><title>9月 14.6℃ 78mm</title></circle><text x="168.2" y="153.3" class="mon" text-anchor="middle">9</text><circle cx="280.3" cy="119.8" r="3.5" class="dot"><title>10月 17.7℃ 139mm</title></circle><text x="290.3" y="123.4" class="mon" text-anchor="middle">10</text><circle cx="266.7" cy="95.9" r="3.5" class="dot"><title>11月 20.7℃ 131mm</title></circle><text x="275.8" y="95.3" class="mon" text-anchor="middle">11</text><circle cx="219.1" cy="76.1" r="3.5" class="dot"><title>12月 23.2℃ 103mm</title></circle><text x="219.8" y="69.6" class="mon" text-anchor="middle">12</text><text x="38" y="15" class="lbl t" text-anchor="end">℃</text><text x="214.0" y="374" class="lbl p" text-anchor="middle">降水量（mm）</text></svg></div>
+        <p class="hint">南半球（夏は12〜2月）・白丸○が1月</p>
+        <p class="tap">👆 タップして答えを見る</p>
+      </div>
+      <div class="face back zone-bg-C">
+        <p class="answer-code">Cfa（温暖湿潤気候）</p>
+        <p class="answer-city">ブエノスアイレス（アルゼンチン）</p>
+        <p class="label">判定の手順</p>
+        <ol class="steps"><li>最暖月平均気温 24.5℃ ≧ 10℃ → 寒帯（E）ではない</li><li>年降水量 1215mm ≧ 乾燥限界 496mm（年中ほぼ平均的に降るなので r = 20 × (17.8 + 7)）→ 乾燥帯（B）ではない</li><li>−3℃ ≦ 最寒月平均気温 11.0℃ &lt; 18℃ → 温帯（C）</li><li>夏・冬ともにはっきりした乾季がない → 年中湿潤（f）</li><li>最暖月平均気温 24.5℃ ≧ 22℃ → 温暖湿潤気候（Cfa）</li></ol>
+        <p class="label">特徴</p>
+        <p>年中湿潤で四季が明瞭。夏は高温（最暖月22℃以上）。</p>
+        <p>植生：照葉樹林・落葉広葉樹林・混合林／土壌：褐色森林土・赤黄色土</p>
+        <p class="tap">👆 タップで表に戻る</p>
+      </div>
+    </div>
+  </div>
+  
+  <div class="flip-card" data-zone="C" hidden tabindex="0"
+       role="button" aria-label="タップしてカードを裏返す">
+    <div class="flip-inner">
+      <div class="face front">
+        <p class="face-title">この都市の気候区は？</p>
+        <div class="chart"><svg viewBox="0 0 400 380" class="climograph hyther" role="img" aria-label="ハイサーグラフ" xmlns="http://www.w3.org/2000/svg"><line x1="44" y1="340.0" x2="384" y2="340.0" class="grid"/><text x="38" y="344.0" class="lbl t" text-anchor="end">-10</text><line x1="44" y1="260.5" x2="384" y2="260.5" class="axis zero"/><text x="38" y="264.5" class="lbl t" text-anchor="end">0</text><line x1="44" y1="181.0" x2="384" y2="181.0" class="grid"/><text x="38" y="185.0" class="lbl t" text-anchor="end">10</text><line x1="44" y1="101.5" x2="384" y2="101.5" class="grid"/><text x="38" y="105.5" class="lbl t" text-anchor="end">20</text><line x1="44" y1="22.0" x2="384" y2="22.0" class="grid"/><text x="38" y="26.0" class="lbl t" text-anchor="end">30</text><line x1="44.0" y1="22" x2="44.0" y2="340" class="grid"/><text x="44.0" y="355" class="lbl p" text-anchor="middle">0</text><line x1="384.0" y1="22" x2="384.0" y2="340" class="grid"/><text x="384.0" y="355" class="lbl p" text-anchor="middle">100</text><rect x="44" y="22" width="340" height="318" class="frame"/><polyline points="231.0,214.4 183.4,211.2 186.8,193.7 193.6,175.4 210.6,148.4 197.0,124.6 197.0,106.3 214.0,108.7 210.6,130.9 278.6,158.7 244.6,189.7 231.0,210.4 231.0,214.4" class="line"/><circle cx="231.0" cy="214.4" r="5" class="dot first"><title>1月 5.8℃ 55mm</title></circle><text x="234.1" y="227.4" class="mon" text-anchor="middle">1</text><circle cx="183.4" cy="211.2" r="3.5" class="dot"><title>2月 6.2℃ 41mm</title></circle><text x="177.8" y="223.0" class="mon" text-anchor="middle">2</text><circle cx="186.8" cy="193.7" r="3.5" class="dot"><title>3月 8.4℃ 42mm</title></circle><text x="179.9" y="204.4" class="mon" text-anchor="middle">3</text><circle cx="193.6" cy="175.4" r="3.5" class="dot"><title>4月 10.7℃ 44mm</title></circle><text x="184.7" y="183.6" class="mon" text-anchor="middle">4</text><circle cx="210.6" cy="148.4" r="3.5" class="dot"><title>5月 14.1℃ 49mm</title></circle><text x="208.0" y="142.2" class="mon" text-anchor="middle">5</text><circle cx="197.0" cy="124.6" r="3.5" class="dot"><title>6月 17.1℃ 45mm</title></circle><text x="192.9" y="118.9" class="mon" text-anchor="middle">6</text><circle cx="197.0" cy="106.3" r="3.5" class="dot"><title>7月 19.4℃ 45mm</title></circle><text x="194.1" y="100.2" class="mon" text-anchor="middle">7</text><circle cx="214.0" cy="108.7" r="3.5" class="dot"><title>8月 19.1℃ 50mm</title></circle><text x="213.8" y="102.2" class="mon" text-anchor="middle">8</text><circle cx="210.6" cy="130.9" r="3.5" class="dot"><title>9月 16.3℃ 49mm</title></circle><text x="209.3" y="124.5" class="mon" text-anchor="middle">9</text><circle cx="278.6" cy="158.7" r="3.5" class="dot"><title>10月 12.8℃ 69mm</title></circle><text x="288.6" y="161.4" class="mon" text-anchor="middle">10</text><circle cx="244.6" cy="189.7" r="3.5" class="dot"><title>11月 8.9℃ 59mm</title></circle><text x="252.2" y="199.7" class="mon" text-anchor="middle">11</text><circle cx="231.0" cy="210.4" r="3.5" class="dot"><title>12月 6.3℃ 55mm</title></circle><text x="234.3" y="223.4" class="mon" text-anchor="middle">12</text><text x="38" y="15" class="lbl t" text-anchor="end">℃</text><text x="214.0" y="374" class="lbl p" text-anchor="middle">降水量（mm）</text></svg></div>
+        <p class="hint">北半球・白丸○が1月</p>
+        <p class="tap">👆 タップして答えを見る</p>
+      </div>
+      <div class="face back zone-bg-C">
+        <p class="answer-code">Cfb（西岸海洋性気候）</p>
+        <p class="answer-city">ロンドン（イギリス）</p>
+        <p class="label">判定の手順</p>
+        <ol class="steps"><li>最暖月平均気温 19.4℃ ≧ 10℃ → 寒帯（E）ではない</li><li>年降水量 603mm ≧ 乾燥限界 382mm（年中ほぼ平均的に降るなので r = 20 × (12.1 + 7)）→ 乾燥帯（B）ではない</li><li>−3℃ ≦ 最寒月平均気温 5.8℃ &lt; 18℃ → 温帯（C）</li><li>夏・冬ともにはっきりした乾季がない → 年中湿潤（f）</li><li>最暖月平均気温 19.4℃ &lt; 22℃ → 西岸海洋性気候（Cfb）</li></ol>
+        <p class="label">特徴</p>
+        <p>暖流と偏西風の影響で高緯度でも冬が温和。夏は冷涼（最暖月22℃未満）。</p>
+        <p>植生：落葉広葉樹林／土壌：褐色森林土</p>
+        <p class="tap">👆 タップで表に戻る</p>
+      </div>
+    </div>
+  </div>
+  
+  <div class="flip-card" data-zone="C" hidden tabindex="0"
+       role="button" aria-label="タップしてカードを裏返す">
+    <div class="flip-inner">
+      <div class="face front">
+        <p class="face-title">この都市の気候区は？</p>
+        <div class="chart"><svg viewBox="0 0 400 380" class="climograph hyther" role="img" aria-label="ハイサーグラフ" xmlns="http://www.w3.org/2000/svg"><line x1="44" y1="340.0" x2="384" y2="340.0" class="grid"/><text x="38" y="344.0" class="lbl t" text-anchor="end">-10</text><line x1="44" y1="260.5" x2="384" y2="260.5" class="axis zero"/><text x="38" y="264.5" class="lbl t" text-anchor="end">0</text><line x1="44" y1="181.0" x2="384" y2="181.0" class="grid"/><text x="38" y="185.0" class="lbl t" text-anchor="end">10</text><line x1="44" y1="101.5" x2="384" y2="101.5" class="grid"/><text x="38" y="105.5" class="lbl t" text-anchor="end">20</text><line x1="44" y1="22.0" x2="384" y2="22.0" class="grid"/><text x="38" y="26.0" class="lbl t" text-anchor="end">30</text><line x1="44.0" y1="22" x2="44.0" y2="340" class="grid"/><text x="44.0" y="355" class="lbl p" text-anchor="middle">0</text><line x1="384.0" y1="22" x2="384.0" y2="340" class="grid"/><text x="384.0" y="355" class="lbl p" text-anchor="middle">100</text><rect x="44" y="22" width="340" height="318" class="frame"/><polyline points="217.4,220.8 186.8,216.0 207.2,190.5 220.8,169.1 258.2,139.7 214.0,115.0 254.8,97.5 224.2,99.1 203.8,126.1 254.8,157.2 217.4,194.5 241.2,216.8 217.4,220.8" class="line"/><circle cx="217.4" cy="220.8" r="5" class="dot first"><title>1月 5.0℃ 51mm</title></circle><text x="216.1" y="234.2" class="mon" text-anchor="middle">1</text><circle cx="186.8" cy="216.0" r="3.5" class="dot"><title>2月 5.6℃ 42mm</title></circle><text x="181.0" y="227.6" class="mon" text-anchor="middle">2</text><circle cx="207.2" cy="190.5" r="3.5" class="dot"><title>3月 8.8℃ 48mm</title></circle><text x="201.9" y="202.5" class="mon" text-anchor="middle">3</text><circle cx="220.8" cy="169.1" r="3.5" class="dot"><title>4月 11.5℃ 52mm</title></circle><text x="215.7" y="181.2" class="mon" text-anchor="middle">4</text><circle cx="258.2" cy="139.7" r="3.5" class="dot"><title>5月 15.2℃ 63mm</title></circle><text x="266.5" y="137.6" class="mon" text-anchor="middle">5</text><circle cx="214.0" cy="115.0" r="3.5" class="dot"><title>6月 18.3℃ 50mm</title></circle><text x="211.7" y="108.8" class="mon" text-anchor="middle">6</text><circle cx="254.8" cy="97.5" r="3.5" class="dot"><title>7月 20.5℃ 62mm</title></circle><text x="259.0" y="91.9" class="mon" text-anchor="middle">7</text><circle cx="224.2" cy="99.1" r="3.5" class="dot"><title>8月 20.3℃ 53mm</title></circle><text x="224.1" y="92.6" class="mon" text-anchor="middle">8</text><circle cx="203.8" cy="126.1" r="3.5" class="dot"><title>9月 16.9℃ 47mm</title></circle><text x="198.7" y="121.1" class="mon" text-anchor="middle">9</text><circle cx="254.8" cy="157.2" r="3.5" class="dot"><title>10月 13.0℃ 62mm</title></circle><text x="264.7" y="159.1" class="mon" text-anchor="middle">10</text><circle cx="217.4" cy="194.5" r="3.5" class="dot"><title>11月 8.3℃ 51mm</title></circle><text x="215.1" y="207.8" class="mon" text-anchor="middle">11</text><circle cx="241.2" cy="216.8" r="3.5" class="dot"><title>12月 5.5℃ 58mm</title></circle><text x="244.0" y="229.9" class="mon" text-anchor="middle">12</text><text x="38" y="15" class="lbl t" text-anchor="end">℃</text><text x="214.0" y="374" class="lbl p" text-anchor="middle">降水量（mm）</text></svg></div>
+        <p class="hint">北半球・白丸○が1月</p>
+        <p class="tap">👆 タップして答えを見る</p>
+      </div>
+      <div class="face back zone-bg-C">
+        <p class="answer-code">Cfb（西岸海洋性気候）</p>
+        <p class="answer-city">パリ（フランス）</p>
+        <p class="label">判定の手順</p>
+        <ol class="steps"><li>最暖月平均気温 20.5℃ ≧ 10℃ → 寒帯（E）ではない</li><li>年降水量 639mm ≧ 乾燥限界 388mm（年中ほぼ平均的に降るなので r = 20 × (12.4 + 7)）→ 乾燥帯（B）ではない</li><li>−3℃ ≦ 最寒月平均気温 5.0℃ &lt; 18℃ → 温帯（C）</li><li>夏・冬ともにはっきりした乾季がない → 年中湿潤（f）</li><li>最暖月平均気温 20.5℃ &lt; 22℃ → 西岸海洋性気候（Cfb）</li></ol>
+        <p class="label">特徴</p>
+        <p>暖流と偏西風の影響で高緯度でも冬が温和。夏は冷涼（最暖月22℃未満）。</p>
+        <p>植生：落葉広葉樹林／土壌：褐色森林土</p>
+        <p class="tap">👆 タップで表に戻る</p>
+      </div>
+    </div>
+  </div>
+  
+  <div class="flip-card" data-zone="C" hidden tabindex="0"
+       role="button" aria-label="タップしてカードを裏返す">
+    <div class="flip-inner">
+      <div class="face front">
+        <p class="face-title">この都市の気候区は？</p>
+        <div class="chart"><svg viewBox="0 0 400 380" class="climograph hyther" role="img" aria-label="ハイサーグラフ" xmlns="http://www.w3.org/2000/svg"><line x1="44" y1="340.0" x2="384" y2="340.0" class="grid"/><text x="38" y="344.0" class="lbl t" text-anchor="end">-10</text><line x1="44" y1="260.5" x2="384" y2="260.5" class="axis zero"/><text x="38" y="264.5" class="lbl t" text-anchor="end">0</text><line x1="44" y1="181.0" x2="384" y2="181.0" class="grid"/><text x="38" y="185.0" class="lbl t" text-anchor="end">10</text><line x1="44" y1="101.5" x2="384" y2="101.5" class="grid"/><text x="38" y="105.5" class="lbl t" text-anchor="end">20</text><line x1="44" y1="22.0" x2="384" y2="22.0" class="grid"/><text x="38" y="26.0" class="lbl t" text-anchor="end">30</text><line x1="44.0" y1="22" x2="44.0" y2="340" class="grid"/><text x="44.0" y="355" class="lbl p" text-anchor="middle">0</text><line x1="214.0" y1="22" x2="214.0" y2="340" class="grid"/><text x="214.0" y="355" class="lbl p" text-anchor="middle">100</text><line x1="384.0" y1="22" x2="384.0" y2="340" class="grid"/><text x="384.0" y="355" class="lbl p" text-anchor="middle">200</text><rect x="44" y="22" width="340" height="318" class="frame"/><polyline points="171.5,119.0 166.4,117.4 193.6,126.9 193.6,144.4 232.7,161.9 254.8,177.8 273.5,183.4 242.9,179.4 210.6,168.3 225.9,157.9 190.2,144.4 188.5,129.3 171.5,119.0" class="line"/><circle cx="171.5" cy="119.0" r="5" class="dot first"><title>1月 17.8℃ 75mm</title></circle><text x="163.6" y="116.3" class="mon" text-anchor="middle">1</text><circle cx="166.4" cy="117.4" r="3.5" class="dot"><title>2月 18.0℃ 72mm</title></circle><text x="158.3" y="115.0" class="mon" text-anchor="middle">2</text><circle cx="193.6" cy="126.9" r="3.5" class="dot"><title>3月 16.8℃ 88mm</title></circle><text x="187.5" y="122.5" class="mon" text-anchor="middle">3</text><circle cx="193.6" cy="144.4" r="3.5" class="dot"><title>4月 14.6℃ 88mm</title></circle><text x="184.2" y="144.6" class="mon" text-anchor="middle">4</text><circle cx="232.7" cy="161.9" r="3.5" class="dot"><title>5月 12.4℃ 111mm</title></circle><text x="241.5" y="170.1" class="mon" text-anchor="middle">5</text><circle cx="254.8" cy="177.8" r="3.5" class="dot"><title>6月 10.4℃ 124mm</title></circle><text x="263.3" y="186.7" class="mon" text-anchor="middle">6</text><circle cx="273.5" cy="183.4" r="3.5" class="dot"><title>7月 9.7℃ 135mm</title></circle><text x="282.3" y="191.6" class="mon" text-anchor="middle">7</text><circle cx="242.9" cy="179.4" r="3.5" class="dot"><title>8月 10.2℃ 117mm</title></circle><text x="250.2" y="189.7" class="mon" text-anchor="middle">8</text><circle cx="210.6" cy="168.3" r="3.5" class="dot"><title>9月 11.6℃ 98mm</title></circle><text x="209.8" y="181.7" class="mon" text-anchor="middle">9</text><circle cx="225.9" cy="157.9" r="3.5" class="dot"><title>10月 12.9℃ 107mm</title></circle><text x="234.8" y="166.0" class="mon" text-anchor="middle">10</text><circle cx="190.2" cy="144.4" r="3.5" class="dot"><title>11月 14.6℃ 86mm</title></circle><text x="180.6" y="145.1" class="mon" text-anchor="middle">11</text><circle cx="188.5" cy="129.3" r="3.5" class="dot"><title>12月 16.5℃ 85mm</title></circle><text x="181.1" y="126.1" class="mon" text-anchor="middle">12</text><text x="38" y="15" class="lbl t" text-anchor="end">℃</text><text x="214.0" y="374" class="lbl p" text-anchor="middle">降水量（mm）</text></svg></div>
+        <p class="hint">南半球（夏は12〜2月）・白丸○が1月</p>
+        <p class="tap">👆 タップして答えを見る</p>
+      </div>
+      <div class="face back zone-bg-C">
+        <p class="answer-code">Cfb（西岸海洋性気候）</p>
+        <p class="answer-city">ウェリントン（ニュージーランド）</p>
+        <p class="label">判定の手順</p>
+        <ol class="steps"><li>最暖月平均気温 18.0℃ ≧ 10℃ → 寒帯（E）ではない</li><li>年降水量 1186mm ≧ 乾燥限界 416mm（年中ほぼ平均的に降るなので r = 20 × (13.8 + 7)）→ 乾燥帯（B）ではない</li><li>−3℃ ≦ 最寒月平均気温 9.7℃ &lt; 18℃ → 温帯（C）</li><li>夏・冬ともにはっきりした乾季がない → 年中湿潤（f）</li><li>最暖月平均気温 18.0℃ &lt; 22℃ → 西岸海洋性気候（Cfb）</li></ol>
+        <p class="label">特徴</p>
+        <p>暖流と偏西風の影響で高緯度でも冬が温和。夏は冷涼（最暖月22℃未満）。</p>
+        <p>植生：落葉広葉樹林／土壌：褐色森林土</p>
+        <p class="tap">👆 タップで表に戻る</p>
+      </div>
+    </div>
+  </div>
+  
+  <div class="flip-card" data-zone="D" hidden tabindex="0"
+       role="button" aria-label="タップしてカードを裏返す">
+    <div class="flip-inner">
+      <div class="face front">
+        <p class="face-title">この都市の気候区は？</p>
+        <div class="chart"><svg viewBox="0 0 400 380" class="climograph hyther" role="img" aria-label="ハイサーグラフ" xmlns="http://www.w3.org/2000/svg"><line x1="44" y1="340.0" x2="384" y2="340.0" class="grid"/><text x="38" y="344.0" class="lbl t" text-anchor="end">-10</text><line x1="44" y1="260.5" x2="384" y2="260.5" class="axis zero"/><text x="38" y="264.5" class="lbl t" text-anchor="end">0</text><line x1="44" y1="181.0" x2="384" y2="181.0" class="grid"/><text x="38" y="185.0" class="lbl t" text-anchor="end">10</text><line x1="44" y1="101.5" x2="384" y2="101.5" class="grid"/><text x="38" y="105.5" class="lbl t" text-anchor="end">20</text><line x1="44" y1="22.0" x2="384" y2="22.0" class="grid"/><text x="38" y="26.0" class="lbl t" text-anchor="end">30</text><line x1="44.0" y1="22" x2="44.0" y2="340" class="grid"/><text x="44.0" y="355" class="lbl p" text-anchor="middle">0</text><line x1="384.0" y1="22" x2="384.0" y2="340" class="grid"/><text x="384.0" y="355" class="lbl p" text-anchor="middle">100</text><rect x="44" y="22" width="340" height="318" class="frame"/><polyline points="224.2,312.2 193.6,313.8 176.6,268.4 166.4,207.2 217.4,155.6 312.6,125.3 333.0,107.9 322.8,125.3 275.2,170.7 285.4,216.0 231.0,270.0 220.8,301.8 224.2,312.2" class="line"/><circle cx="224.2" cy="312.2" r="5" class="dot first"><title>1月 -6.5℃ 53mm</title></circle><text x="222.0" y="325.4" class="mon" text-anchor="middle">1</text><circle cx="193.6" cy="313.8" r="3.5" class="dot"><title>2月 -6.7℃ 44mm</title></circle><text x="188.9" y="326.1" class="mon" text-anchor="middle">2</text><circle cx="176.6" cy="268.4" r="3.5" class="dot"><title>3月 -1.0℃ 39mm</title></circle><text x="168.7" y="278.1" class="mon" text-anchor="middle">3</text><circle cx="166.4" cy="207.2" r="3.5" class="dot"><title>4月 6.7℃ 36mm</title></circle><text x="156.4" y="209.8" class="mon" text-anchor="middle">4</text><circle cx="217.4" cy="155.6" r="3.5" class="dot"><title>5月 13.2℃ 51mm</title></circle><text x="213.0" y="150.1" class="mon" text-anchor="middle">5</text><circle cx="312.6" cy="125.3" r="3.5" class="dot"><title>6月 17.0℃ 79mm</title></circle><text x="318.6" y="120.8" class="mon" text-anchor="middle">6</text><circle cx="333.0" cy="107.9" r="3.5" class="dot"><title>7月 19.2℃ 85mm</title></circle><text x="339.3" y="103.6" class="mon" text-anchor="middle">7</text><circle cx="322.8" cy="125.3" r="3.5" class="dot"><title>8月 17.0℃ 82mm</title></circle><text x="329.3" y="121.2" class="mon" text-anchor="middle">8</text><circle cx="275.2" cy="170.7" r="3.5" class="dot"><title>9月 11.3℃ 68mm</title></circle><text x="280.7" y="165.8" class="mon" text-anchor="middle">9</text><circle cx="285.4" cy="216.0" r="3.5" class="dot"><title>10月 5.6℃ 71mm</title></circle><text x="295.4" y="219.9" class="mon" text-anchor="middle">10</text><circle cx="231.0" cy="270.0" r="3.5" class="dot"><title>11月 -1.2℃ 55mm</title></circle><text x="228.3" y="283.2" class="mon" text-anchor="middle">11</text><circle cx="220.8" cy="301.8" r="3.5" class="dot"><title>12月 -5.2℃ 52mm</title></circle><text x="218.0" y="314.9" class="mon" text-anchor="middle">12</text><text x="38" y="15" class="lbl t" text-anchor="end">℃</text><text x="214.0" y="374" class="lbl p" text-anchor="middle">降水量（mm）</text></svg></div>
+        <p class="hint">北半球・白丸○が1月</p>
+        <p class="tap">👆 タップして答えを見る</p>
+      </div>
+      <div class="face back zone-bg-D">
+        <p class="answer-code">Df（亜寒帯湿潤気候）</p>
+        <p class="answer-city">モスクワ（ロシア）</p>
+        <p class="label">判定の手順</p>
+        <ol class="steps"><li>最暖月平均気温 19.2℃ ≧ 10℃ → 寒帯（E）ではない</li><li>年降水量 715mm ≧ 乾燥限界 256mm（年中ほぼ平均的に降るなので r = 20 × (5.8 + 7)）→ 乾燥帯（B）ではない</li><li>最寒月平均気温 -6.7℃ &lt; −3℃ → 亜寒帯（D）</li><li>冬にはっきりした乾季がない → 亜寒帯湿潤気候（Df）</li></ol>
+        <p class="label">特徴</p>
+        <p>冬は寒冷で長いが、年中降水がある。夏は比較的高温。</p>
+        <p>植生：針葉樹林（タイガ）・混合林／土壌：ポドゾル</p>
+        <p class="tap">👆 タップで表に戻る</p>
+      </div>
+    </div>
+  </div>
+  
+  <div class="flip-card" data-zone="D" hidden tabindex="0"
+       role="button" aria-label="タップしてカードを裏返す">
+    <div class="flip-inner">
+      <div class="face front">
+        <p class="face-title">この都市の気候区は？</p>
+        <div class="chart"><svg viewBox="0 0 400 380" class="climograph hyther" role="img" aria-label="ハイサーグラフ" xmlns="http://www.w3.org/2000/svg"><line x1="44" y1="340.0" x2="384" y2="340.0" class="grid"/><text x="38" y="344.0" class="lbl t" text-anchor="end">-20</text><line x1="44" y1="276.4" x2="384" y2="276.4" class="grid"/><text x="38" y="280.4" class="lbl t" text-anchor="end">-10</text><line x1="44" y1="212.8" x2="384" y2="212.8" class="axis zero"/><text x="38" y="216.8" class="lbl t" text-anchor="end">0</text><line x1="44" y1="149.2" x2="384" y2="149.2" class="grid"/><text x="38" y="153.2" class="lbl t" text-anchor="end">10</text><line x1="44" y1="85.6" x2="384" y2="85.6" class="grid"/><text x="38" y="89.6" class="lbl t" text-anchor="end">20</text><line x1="44" y1="22.0" x2="384" y2="22.0" class="grid"/><text x="38" y="26.0" class="lbl t" text-anchor="end">30</text><line x1="44.0" y1="22" x2="44.0" y2="340" class="grid"/><text x="44.0" y="355" class="lbl p" text-anchor="middle">0</text><line x1="214.0" y1="22" x2="214.0" y2="340" class="grid"/><text x="214.0" y="355" class="lbl p" text-anchor="middle">100</text><line x1="384.0" y1="22" x2="384.0" y2="340" class="grid"/><text x="384.0" y="355" class="lbl p" text-anchor="middle">200</text><rect x="44" y="22" width="340" height="318" class="frame"/><polyline points="50.8,324.7 54.2,291.7 64.4,235.7 84.8,168.9 118.8,119.9 195.3,83.7 285.4,66.5 244.6,77.3 142.6,118.0 88.2,175.9 64.4,244.6 54.2,306.3 50.8,324.7" class="line"/><circle cx="50.8" cy="324.7" r="5" class="dot first"><title>1月 -17.6℃ 4mm</title></circle><text x="46.3" y="337.2" class="mon" text-anchor="middle">1</text><circle cx="54.2" cy="291.7" r="3.5" class="dot"><title>2月 -12.4℃ 6mm</title></circle><text x="48.9" y="303.7" class="mon" text-anchor="middle">2</text><circle cx="64.4" cy="235.7" r="3.5" class="dot"><title>3月 -3.6℃ 12mm</title></circle><text x="57.0" y="245.9" class="mon" text-anchor="middle">3</text><circle cx="84.8" cy="168.9" r="3.5" class="dot"><title>4月 6.9℃ 24mm</title></circle><text x="75.6" y="168.4" class="mon" text-anchor="middle">4</text><circle cx="118.8" cy="119.9" r="3.5" class="dot"><title>5月 14.6℃ 44mm</title></circle><text x="118.5" y="113.4" class="mon" text-anchor="middle">5</text><circle cx="195.3" cy="83.7" r="3.5" class="dot"><title>6月 20.3℃ 89mm</title></circle><text x="201.3" y="79.2" class="mon" text-anchor="middle">6</text><circle cx="285.4" cy="66.5" r="3.5" class="dot"><title>7月 23.0℃ 142mm</title></circle><text x="293.5" y="64.2" class="mon" text-anchor="middle">7</text><circle cx="244.6" cy="77.3" r="3.5" class="dot"><title>8月 21.3℃ 118mm</title></circle><text x="252.2" y="74.3" class="mon" text-anchor="middle">8</text><circle cx="142.6" cy="118.0" r="3.5" class="dot"><title>9月 14.9℃ 58mm</title></circle><text x="145.7" y="112.0" class="mon" text-anchor="middle">9</text><circle cx="88.2" cy="175.9" r="3.5" class="dot"><title>10月 5.8℃ 26mm</title></circle><text x="78.5" y="176.9" class="mon" text-anchor="middle">10</text><circle cx="64.4" cy="244.6" r="3.5" class="dot"><title>11月 -5.0℃ 12mm</title></circle><text x="57.6" y="255.4" class="mon" text-anchor="middle">11</text><circle cx="54.2" cy="306.3" r="3.5" class="dot"><title>12月 -14.7℃ 6mm</title></circle><text x="49.4" y="318.6" class="mon" text-anchor="middle">12</text><text x="38" y="15" class="lbl t" text-anchor="end">℃</text><text x="214.0" y="374" class="lbl p" text-anchor="middle">降水量（mm）</text></svg></div>
+        <p class="hint">北半球・白丸○が1月</p>
+        <p class="tap">👆 タップして答えを見る</p>
+      </div>
+      <div class="face back zone-bg-D">
+        <p class="answer-code">Dw（亜寒帯冬季少雨気候）</p>
+        <p class="answer-city">ハルビン（中国）</p>
+        <p class="label">判定の手順</p>
+        <ol class="steps"><li>最暖月平均気温 23.0℃ ≧ 10℃ → 寒帯（E）ではない</li><li>年降水量 541mm ≧ 乾燥限界 369mm（夏に雨が集中（夏半年に年降水量の70%以上）なので r = 20 × (4.5 + 14)）→ 乾燥帯（B）ではない</li><li>最寒月平均気温 -17.6℃ &lt; −3℃ → 亜寒帯（D）</li><li>冬の最少雨月 4mm が夏の最多雨月 142mm の1/10未満 → 冬に乾燥する亜寒帯冬季少雨気候（Dw）</li></ol>
+        <p class="label">特徴</p>
+        <p>冬は極めて寒冷で乾燥。気温の年較差が非常に大きい。</p>
+        <p>植生：針葉樹林（タイガ）／土壌：ポドゾル</p>
+        <p class="tap">👆 タップで表に戻る</p>
+      </div>
+    </div>
+  </div>
+  
+  <div class="flip-card" data-zone="D" hidden tabindex="0"
+       role="button" aria-label="タップしてカードを裏返す">
+    <div class="flip-inner">
+      <div class="face front">
+        <p class="face-title">この都市の気候区は？</p>
+        <div class="chart"><svg viewBox="0 0 400 380" class="climograph hyther" role="img" aria-label="ハイサーグラフ" xmlns="http://www.w3.org/2000/svg"><line x1="44" y1="340.0" x2="384" y2="340.0" class="grid"/><text x="38" y="344.0" class="lbl t" text-anchor="end">-20</text><line x1="44" y1="276.4" x2="384" y2="276.4" class="grid"/><text x="38" y="280.4" class="lbl t" text-anchor="end">-10</text><line x1="44" y1="212.8" x2="384" y2="212.8" class="axis zero"/><text x="38" y="216.8" class="lbl t" text-anchor="end">0</text><line x1="44" y1="149.2" x2="384" y2="149.2" class="grid"/><text x="38" y="153.2" class="lbl t" text-anchor="end">10</text><line x1="44" y1="85.6" x2="384" y2="85.6" class="grid"/><text x="38" y="89.6" class="lbl t" text-anchor="end">20</text><line x1="44" y1="22.0" x2="384" y2="22.0" class="grid"/><text x="38" y="26.0" class="lbl t" text-anchor="end">30</text><line x1="44.0" y1="22" x2="44.0" y2="340" class="grid"/><text x="44.0" y="355" class="lbl p" text-anchor="middle">0</text><line x1="214.0" y1="22" x2="214.0" y2="340" class="grid"/><text x="214.0" y="355" class="lbl p" text-anchor="middle">100</text><line x1="384.0" y1="22" x2="384.0" y2="340" class="grid"/><text x="384.0" y="355" class="lbl p" text-anchor="middle">200</text><rect x="44" y="22" width="340" height="318" class="frame"/><polyline points="64.4,291.0 69.5,266.2 91.6,219.2 130.7,175.3 169.8,143.5 217.4,119.9 273.5,94.5 314.3,82.4 239.5,108.5 142.6,153.0 98.4,212.8 72.9,266.2 64.4,291.0" class="line"/><circle cx="64.4" cy="291.0" r="5" class="dot first"><title>1月 -12.3℃ 12mm</title></circle><text x="58.1" y="302.3" class="mon" text-anchor="middle">1</text><circle cx="69.5" cy="266.2" r="3.5" class="dot"><title>2月 -8.4℃ 15mm</title></circle><text x="62.5" y="276.8" class="mon" text-anchor="middle">2</text><circle cx="91.6" cy="219.2" r="3.5" class="dot"><title>3月 -1.0℃ 28mm</title></circle><text x="83.2" y="228.0" class="mon" text-anchor="middle">3</text><circle cx="130.7" cy="175.3" r="3.5" class="dot"><title>4月 5.9℃ 51mm</title></circle><text x="120.7" y="177.9" class="mon" text-anchor="middle">4</text><circle cx="169.8" cy="143.5" r="3.5" class="dot"><title>5月 10.9℃ 74mm</title></circle><text x="173.3" y="137.6" class="mon" text-anchor="middle">5</text><circle cx="217.4" cy="119.9" r="3.5" class="dot"><title>6月 14.6℃ 102mm</title></circle><text x="224.6" y="116.5" class="mon" text-anchor="middle">6</text><circle cx="273.5" cy="94.5" r="3.5" class="dot"><title>7月 18.6℃ 135mm</title></circle><text x="281.6" y="92.2" class="mon" text-anchor="middle">7</text><circle cx="314.3" cy="82.4" r="3.5" class="dot"><title>8月 20.5℃ 159mm</title></circle><text x="322.9" y="80.7" class="mon" text-anchor="middle">8</text><circle cx="239.5" cy="108.5" r="3.5" class="dot"><title>9月 16.4℃ 115mm</title></circle><text x="247.2" y="105.6" class="mon" text-anchor="middle">9</text><circle cx="142.6" cy="153.0" r="3.5" class="dot"><title>10月 9.4℃ 58mm</title></circle><text x="137.6" y="147.9" class="mon" text-anchor="middle">10</text><circle cx="98.4" cy="212.8" r="3.5" class="dot"><title>11月 0.0℃ 32mm</title></circle><text x="89.8" y="221.4" class="mon" text-anchor="middle">11</text><circle cx="72.9" cy="266.2" r="3.5" class="dot"><title>12月 -8.4℃ 17mm</title></circle><text x="66.0" y="277.0" class="mon" text-anchor="middle">12</text><text x="38" y="15" class="lbl t" text-anchor="end">℃</text><text x="214.0" y="374" class="lbl p" text-anchor="middle">降水量（mm）</text></svg></div>
+        <p class="hint">北半球・白丸○が1月</p>
+        <p class="tap">👆 タップして答えを見る</p>
+      </div>
+      <div class="face back zone-bg-D">
+        <p class="answer-code">Dw（亜寒帯冬季少雨気候）</p>
+        <p class="answer-city">ウラジオストク（ロシア）</p>
+        <p class="label">判定の手順</p>
+        <ol class="steps"><li>最暖月平均気温 20.5℃ ≧ 10℃ → 寒帯（E）ではない</li><li>年降水量 798mm ≧ 乾燥限界 390mm（夏に雨が集中（夏半年に年降水量の70%以上）なので r = 20 × (5.5 + 14)）→ 乾燥帯（B）ではない</li><li>最寒月平均気温 -12.3℃ &lt; −3℃ → 亜寒帯（D）</li><li>冬の最少雨月 12mm が夏の最多雨月 159mm の1/10未満 → 冬に乾燥する亜寒帯冬季少雨気候（Dw）</li></ol>
+        <p class="label">特徴</p>
+        <p>冬は極めて寒冷で乾燥。気温の年較差が非常に大きい。</p>
+        <p>植生：針葉樹林（タイガ）／土壌：ポドゾル</p>
+        <p class="tap">👆 タップで表に戻る</p>
+      </div>
+    </div>
+  </div>
+  
+  <div class="flip-card" data-zone="E" hidden tabindex="0"
+       role="button" aria-label="タップしてカードを裏返す">
+    <div class="flip-inner">
+      <div class="face front">
+        <p class="face-title">この都市の気候区は？</p>
+        <div class="chart"><svg viewBox="0 0 400 380" class="climograph hyther" role="img" aria-label="ハイサーグラフ" xmlns="http://www.w3.org/2000/svg"><line x1="44" y1="340.0" x2="384" y2="340.0" class="grid"/><text x="38" y="344.0" class="lbl t" text-anchor="end">-30</text><line x1="44" y1="287.0" x2="384" y2="287.0" class="grid"/><text x="38" y="291.0" class="lbl t" text-anchor="end">-20</text><line x1="44" y1="234.0" x2="384" y2="234.0" class="grid"/><text x="38" y="238.0" class="lbl t" text-anchor="end">-10</text><line x1="44" y1="181.0" x2="384" y2="181.0" class="axis zero"/><text x="38" y="185.0" class="lbl t" text-anchor="end">0</text><line x1="44" y1="128.0" x2="384" y2="128.0" class="grid"/><text x="38" y="132.0" class="lbl t" text-anchor="end">10</text><line x1="44" y1="75.0" x2="384" y2="75.0" class="grid"/><text x="38" y="79.0" class="lbl t" text-anchor="end">20</text><line x1="44" y1="22.0" x2="384" y2="22.0" class="grid"/><text x="38" y="26.0" class="lbl t" text-anchor="end">30</text><line x1="44.0" y1="22" x2="44.0" y2="340" class="grid"/><text x="44.0" y="355" class="lbl p" text-anchor="middle">0</text><line x1="384.0" y1="22" x2="384.0" y2="340" class="grid"/><text x="384.0" y="355" class="lbl p" text-anchor="middle">100</text><rect x="44" y="22" width="340" height="318" class="frame"/><polyline points="57.6,316.7 57.6,325.2 54.2,318.3 54.2,274.3 57.6,214.9 71.2,170.9 129.0,154.5 129.0,160.9 95.0,184.2 81.4,228.2 61.0,275.9 57.6,305.0 57.6,316.7" class="line"/><circle cx="57.6" cy="316.7" r="5" class="dot first"><title>1月 -25.6℃ 4mm</title></circle><text x="55.2" y="329.9" class="mon" text-anchor="middle">1</text><circle cx="57.6" cy="325.2" r="3.5" class="dot"><title>2月 -27.2℃ 4mm</title></circle><text x="55.5" y="338.4" class="mon" text-anchor="middle">2</text><circle cx="54.2" cy="318.3" r="3.5" class="dot"><title>3月 -25.9℃ 3mm</title></circle><text x="51.4" y="331.4" class="mon" text-anchor="middle">3</text><circle cx="54.2" cy="274.3" r="3.5" class="dot"><title>4月 -17.6℃ 3mm</title></circle><text x="48.4" y="286.0" class="mon" text-anchor="middle">4</text><circle cx="57.6" cy="214.9" r="3.5" class="dot"><title>5月 -6.4℃ 4mm</title></circle><text x="52.4" y="209.9" class="mon" text-anchor="middle">5</text><circle cx="71.2" cy="170.9" r="3.5" class="dot"><title>6月 1.9℃ 8mm</title></circle><text x="70.6" y="164.4" class="mon" text-anchor="middle">6</text><circle cx="129.0" cy="154.5" r="3.5" class="dot"><title>7月 5.0℃ 25mm</title></circle><text x="134.1" y="149.4" class="mon" text-anchor="middle">7</text><circle cx="129.0" cy="160.9" r="3.5" class="dot"><title>8月 3.8℃ 25mm</title></circle><text x="134.4" y="156.0" class="mon" text-anchor="middle">8</text><circle cx="95.0" cy="184.2" r="3.5" class="dot"><title>9月 -0.6℃ 15mm</title></circle><text x="98.1" y="178.2" class="mon" text-anchor="middle">9</text><circle cx="81.4" cy="228.2" r="3.5" class="dot"><title>10月 -8.9℃ 11mm</title></circle><text x="84.9" y="222.3" class="mon" text-anchor="middle">10</text><circle cx="61.0" cy="275.9" r="3.5" class="dot"><title>11月 -17.9℃ 5mm</title></circle><text x="56.9" y="288.5" class="mon" text-anchor="middle">11</text><circle cx="57.6" cy="305.0" r="3.5" class="dot"><title>12月 -23.4℃ 4mm</title></circle><text x="54.8" y="318.1" class="mon" text-anchor="middle">12</text><text x="38" y="15" class="lbl t" text-anchor="end">℃</text><text x="214.0" y="374" class="lbl p" text-anchor="middle">降水量（mm）</text></svg></div>
+        <p class="hint">北半球・白丸○が1月</p>
+        <p class="tap">👆 タップして答えを見る</p>
+      </div>
+      <div class="face back zone-bg-E">
+        <p class="answer-code">ET（ツンドラ気候）</p>
+        <p class="answer-city">バロー（アメリカ合衆国（アラスカ））</p>
+        <p class="label">判定の手順</p>
+        <ol class="steps"><li>最暖月平均気温 5.0℃ &lt; 10℃ → 樹木が育たない寒帯（E）</li><li>0℃ ≦ 最暖月平均気温 5.0℃ &lt; 10℃ → ツンドラ気候（ET）</li></ol>
+        <p class="label">特徴</p>
+        <p>短い夏だけ地表の氷がとける。下に永久凍土がある。</p>
+        <p>植生：コケ類・地衣類（ツンドラ）／土壌：ツンドラ土</p>
+        <p class="tap">👆 タップで表に戻る</p>
+      </div>
+    </div>
+  </div>
+  
+  <div class="flip-card" data-zone="E" hidden tabindex="0"
+       role="button" aria-label="タップしてカードを裏返す">
+    <div class="flip-inner">
+      <div class="face front">
+        <p class="face-title">この都市の気候区は？</p>
+        <div class="chart"><svg viewBox="0 0 400 380" class="climograph hyther" role="img" aria-label="ハイサーグラフ" xmlns="http://www.w3.org/2000/svg"><line x1="44" y1="340.0" x2="384" y2="340.0" class="grid"/><text x="38" y="344.0" class="lbl t" text-anchor="end">-20</text><line x1="44" y1="276.4" x2="384" y2="276.4" class="grid"/><text x="38" y="280.4" class="lbl t" text-anchor="end">-10</text><line x1="44" y1="212.8" x2="384" y2="212.8" class="axis zero"/><text x="38" y="216.8" class="lbl t" text-anchor="end">0</text><line x1="44" y1="149.2" x2="384" y2="149.2" class="grid"/><text x="38" y="153.2" class="lbl t" text-anchor="end">10</text><line x1="44" y1="85.6" x2="384" y2="85.6" class="grid"/><text x="38" y="89.6" class="lbl t" text-anchor="end">20</text><line x1="44" y1="22.0" x2="384" y2="22.0" class="grid"/><text x="38" y="26.0" class="lbl t" text-anchor="end">30</text><line x1="44.0" y1="22" x2="44.0" y2="340" class="grid"/><text x="44.0" y="355" class="lbl p" text-anchor="middle">0</text><line x1="384.0" y1="22" x2="384.0" y2="340" class="grid"/><text x="384.0" y="355" class="lbl p" text-anchor="middle">100</text><rect x="44" y="22" width="340" height="318" class="frame"/><polyline points="61.0,217.3 61.0,229.3 71.2,249.7 78.0,272.6 84.8,292.3 84.8,308.2 84.8,324.7 84.8,336.8 78.0,326.6 71.2,297.4 64.4,253.5 61.0,223.0 61.0,217.3" class="line"/><circle cx="61.0" cy="217.3" r="5" class="dot first"><title>1月 -0.7℃ 5mm</title></circle><text x="58.9" y="211.0" class="mon" text-anchor="middle">1</text><circle cx="61.0" cy="229.3" r="3.5" class="dot"><title>2月 -2.6℃ 5mm</title></circle><text x="58.4" y="223.2" class="mon" text-anchor="middle">2</text><circle cx="71.2" cy="249.7" r="3.5" class="dot"><title>3月 -5.8℃ 8mm</title></circle><text x="70.3" y="243.2" class="mon" text-anchor="middle">3</text><circle cx="78.0" cy="272.6" r="3.5" class="dot"><title>4月 -9.4℃ 10mm</title></circle><text x="84.5" y="268.4" class="mon" text-anchor="middle">4</text><circle cx="84.8" cy="292.3" r="3.5" class="dot"><title>5月 -12.5℃ 12mm</title></circle><text x="90.8" y="303.8" class="mon" text-anchor="middle">5</text><circle cx="84.8" cy="308.2" r="3.5" class="dot"><title>6月 -15.0℃ 12mm</title></circle><text x="88.2" y="321.1" class="mon" text-anchor="middle">6</text><circle cx="84.8" cy="324.7" r="3.5" class="dot"><title>7月 -17.6℃ 12mm</title></circle><text x="87.1" y="338.0" class="mon" text-anchor="middle">7</text><circle cx="84.8" cy="336.8" r="3.5" class="dot"><title>8月 -19.5℃ 12mm</title></circle><text x="86.6" y="350.2" class="mon" text-anchor="middle">8</text><circle cx="78.0" cy="326.6" r="3.5" class="dot"><title>9月 -17.9℃ 10mm</title></circle><text x="78.9" y="340.1" class="mon" text-anchor="middle">9</text><circle cx="71.2" cy="297.4" r="3.5" class="dot"><title>10月 -13.3℃ 8mm</title></circle><text x="69.9" y="310.8" class="mon" text-anchor="middle">10</text><circle cx="64.4" cy="253.5" r="3.5" class="dot"><title>11月 -6.4℃ 6mm</title></circle><text x="60.8" y="247.7" class="mon" text-anchor="middle">11</text><circle cx="61.0" cy="223.0" r="3.5" class="dot"><title>12月 -1.6℃ 5mm</title></circle><text x="58.7" y="216.7" class="mon" text-anchor="middle">12</text><text x="38" y="15" class="lbl t" text-anchor="end">℃</text><text x="214.0" y="374" class="lbl p" text-anchor="middle">降水量（mm）</text></svg></div>
+        <p class="hint">南半球（夏は12〜2月）・白丸○が1月</p>
+        <p class="tap">👆 タップして答えを見る</p>
+      </div>
+      <div class="face back zone-bg-E">
+        <p class="answer-code">EF（氷雪気候）</p>
+        <p class="answer-city">昭和基地（南極）</p>
+        <p class="label">判定の手順</p>
+        <ol class="steps"><li>最暖月平均気温 -0.7℃ &lt; 10℃ → 樹木が育たない寒帯（E）</li><li>最暖月平均気温 -0.7℃ &lt; 0℃ → 氷雪気候（EF）</li></ol>
+        <p class="label">特徴</p>
+        <p>年中氷雪におおわれる。</p>
+        <p>植生：なし／土壌：なし（氷床）</p>
+        <p class="tap">👆 タップで表に戻る</p>
+      </div>
+    </div>
+  </div>
+  
+
+  <div class="card done" id="done" hidden>
+    <h2>🎉 このデッキはすべて「覚えた」になりました！</h2>
+    <button type="button" class="primary" id="restart">もう一度最初から</button>
+  </div>
+</div>
+
+<div class="deck-actions">
+  <button type="button" class="secondary" id="again">🔁 まだ</button>
+  <button type="button" class="primary" id="got">✓ 覚えた</button>
+</div>
+<div class="deck-sub">
+  <button type="button" class="link" id="prev">← 前へ</button>
+  <button type="button" class="link" id="shuffle">🔀 シャッフル</button>
+  <button type="button" class="link" id="next">次へ →</button>
+</div>
+<p class="muted center">カードをタップ（またはスペースキー）で裏返し。「まだ」のカードはあとでもう一度出てきます。</p>
+
+<script>
+(() => {
+  const cards = [...document.querySelectorAll('.flip-card')];
+  const pos = document.getElementById('pos');
+  const remain = document.getElementById('remain');
+  const done = document.getElementById('done');
+  let zone = '', queue = [], i = 0, learned = new Set();
+
+  const shuffle = (a) => { for (let k = a.length - 1; k > 0; k--) { const j = Math.floor(Math.random() * (k + 1)); [a[k], a[j]] = [a[j], a[k]]; } return a; };
+
+  function build(doShuffle = true) {
+    queue = cards.map((_, k) => k).filter(k => (!zone || cards[k].dataset.zone === zone) && !learned.has(k));
+    if (doShuffle) shuffle(queue);
+    i = 0; show();
+  }
+  function show() {
+    cards.forEach(c => { c.hidden = true; c.classList.remove('flipped'); });
+    const total = cards.filter(c => !zone || c.dataset.zone === zone).length;
+    const left = queue.length;
+    done.hidden = left > 0;
+    document.querySelector('.deck-actions').hidden = left === 0;
+    document.querySelector('.deck-sub').hidden = left === 0;
+    if (!left) { pos.textContent = ''; remain.textContent = `覚えた ${total} / ${total}`; return; }
+    i = (i + left) % left;
+    cards[queue[i]].hidden = false;
+    pos.textContent = `${i + 1} / ${left} 枚`;
+    remain.textContent = `覚えた ${total - left} / ${total}`;
+  }
+  function flip() { const c = cards[queue[i]]; if (c) c.classList.toggle('flipped'); }
+
+  cards.forEach(c => c.addEventListener('click', flip));
+  document.getElementById('next').onclick = () => { i++; show(); };
+  document.getElementById('prev').onclick = () => { i--; show(); };
+  document.getElementById('shuffle').onclick = () => build(true);
+  document.getElementById('got').onclick = () => { learned.add(queue[i]); queue.splice(i, 1); show(); };
+  document.getElementById('again').onclick = () => { queue.push(queue.splice(i, 1)[0]); show(); };
+  document.getElementById('restart').onclick = () => { learned.clear(); build(true); };
+  document.querySelectorAll('.chip').forEach(b => b.onclick = () => {
+    document.querySelectorAll('.chip').forEach(x => x.classList.toggle('active', x === b));
+    zone = b.dataset.zone; build(true);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); flip(); }
+    else if (e.key === 'ArrowRight') { i++; show(); }
+    else if (e.key === 'ArrowLeft') { i--; show(); }
+  });
+  build(true);
+})();
+</script>
+</main>
+<footer class="site">高校地理 定期テスト対策 ／ 都市の気候データは学習用のおおよその平年値です</footer>
+</body>
+</html>

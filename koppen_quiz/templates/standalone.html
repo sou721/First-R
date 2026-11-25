@@ -1,0 +1,26 @@
+{% if full %}<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ケッペン暗記">
+{% endif %}<title>ハイサーグラフ暗記カード</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+{{ css | safe }}
+.site-title { font-weight: 700; }
+</style>
+{% if full %}</head>
+<body>
+{% endif %}<header class="site">
+  <span class="site-title">🌏 ハイサーグラフ暗記カード</span>
+  <span class="muted">ケッペンの気候区分</span>
+</header>
+<main>
+{% include "_deck.html" %}
+</main>
+<footer class="site">高校地理 定期テスト対策 ／ 都市の気候データは学習用のおおよその平年値です</footer>
+{% if full %}</body>
+</html>
+{% endif %}

@@ -28,6 +28,17 @@ python app.py
 
 ブラウザで http://127.0.0.1:5000 を開くと暗記カードが表示されます。4択クイズは上部メニューの「クイズ」から（解答は数字キー 1〜4 でも選べます）。
 
+## サーバーなしで使う（Safari などで開く）
+
+暗記カードは、サーバーなしで動く1つの HTML ファイルにも書き出せます。
+
+```bash
+python build_static.py      # → docs/index.html
+```
+
+`docs/index.html` はダブルクリックで開けるほか、GitHub Pages（Settings → Pages → Branch の `docs` フォルダ）で公開すると、iPhone の Safari から URL で開けます。Safari の「共有 → ホーム画面に追加」でアプリのように使えます。
+カードのデータや見た目を変えたら、もう一度 `python build_static.py` を実行してください。
+
 ## テスト
 
 ```bash

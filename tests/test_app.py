@@ -88,3 +88,13 @@ def test_cards_page(client):
     assert page.count('class="flip-card"') == len(CITIES)
     assert "ハイサーグラフ" in page
     assert client.get("/menu").status_code == 200
+
+
+def test_static_build_is_self_contained():
+    from build_static import build
+    html = build(full=True)
+    assert html.startswith("<!doctype html>")
+    assert html.count('class="flip-card"') == len(CITIES)
+    assert 'href="/' not in html and "<link" not in html   # サーバーへのリンクがない
+    frag = build(full=False)
+    assert "<html" not in frag and "<title>" in frag
