@@ -98,19 +98,12 @@ def hythergraph_svg(temps, precs, title=""):
     parts.append(f'<rect x="{L}" y="{T}" width="{pw}" height="{ph}" class="frame"/>')
 
     pts = [(x(p), y(t)) for t, p in zip(temps, precs)]
-    cx = sum(px for px, _ in pts) / 12
-    cy = sum(py for _, py in pts) / 12
     loop = " ".join(f"{px:.1f},{py:.1f}" for px, py in pts + pts[:1])
     parts.append(f'<polyline points="{loop}" class="line"/>')
     for m, (px, py) in enumerate(pts):
         cls = "dot first" if m == 0 else "dot"
         parts.append(f'<circle cx="{px:.1f}" cy="{py:.1f}" r="{5 if m == 0 else 3.5}" class="{cls}">'
                      f'<title>{m + 1}月 {temps[m]}℃ {precs[m]}mm</title></circle>')
-        # 月の数字は図形の中心から外側へずらして重なりを減らす
-        dx, dy = px - cx, py - cy
-        d = math.hypot(dx, dy) or 1
-        lx, ly = px + dx / d * 10, py + dy / d * 10 + 3.5
-        parts.append(f'<text x="{lx:.1f}" y="{ly:.1f}" class="mon" text-anchor="middle">{m + 1}</text>')
 
     parts.append(f'<text x="{L - 6}" y="{T - 7}" class="lbl t" text-anchor="end">℃</text>')
     parts.append(f'<text x="{L + pw / 2}" y="{HH - 6}" class="lbl p" text-anchor="middle">降水量（mm）</text>')

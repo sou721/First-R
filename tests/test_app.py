@@ -98,3 +98,11 @@ def test_static_build_is_self_contained():
     assert 'href="/' not in html and "<link" not in html   # サーバーへのリンクがない
     frag = build(full=False)
     assert "<html" not in frag and "<title>" in frag
+
+
+def test_hythergraph_has_no_month_labels():
+    from koppen_quiz.climograph import hythergraph_svg
+    c = CITIES["東京"]
+    svg = str(hythergraph_svg(c["temps"], c["precs"]))
+    assert 'class="mon"' not in svg
+    assert svg.count("<circle") == 12
