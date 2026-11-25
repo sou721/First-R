@@ -106,3 +106,10 @@ def test_hythergraph_has_no_month_labels():
     svg = str(hythergraph_svg(c["temps"], c["precs"]))
     assert 'class="mon"' not in svg
     assert svg.count("<circle") == 12
+
+
+def test_am_explanation_has_no_negative_threshold():
+    c = CITIES["ヤンゴン"]
+    steps = classify(c["temps"], c["precs"], c["southern"]).steps
+    assert not any("= -" in s for s in steps)
+    assert "2500mm 以上" in steps[-1]

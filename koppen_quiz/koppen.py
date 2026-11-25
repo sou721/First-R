@@ -81,12 +81,18 @@ def classify(temps, precs, southern=False):
             steps.append(f"最少雨月降水量 {p_min:.0f}mm ≧ 60mm → 熱帯雨林気候（Af）")
             return Result("Af", steps)
         am_line = 100 - total / 25
+        steps.append(f"最少雨月降水量 {p_min:.0f}mm < 60mm → 乾季がある（Af ではない）")
         if p_min >= am_line:
-            steps.append(f"最少雨月 {p_min:.0f}mm < 60mm だが、100 − 年降水量/25 = {am_line:.0f}mm 以上"
-                         " → 弱い乾季のある熱帯モンスーン気候（Am）")
+            if am_line <= 0:
+                why = (f"年降水量 {total:.0f}mm が 2500mm 以上なので、乾季の雨が少なくても"
+                       f"条件（最少雨月 ≧ 100 − 年降水量/25）を満たす")
+            else:
+                why = (f"最少雨月 {p_min:.0f}mm ≧ 100 − 年降水量/25 = {am_line:.0f}mm"
+                       f"（年降水量が多い分、乾季が弱い）")
+            steps.append(f"{why} → 雨季の大量の雨で乾季を補える熱帯モンスーン気候（Am）")
             return Result("Am", steps)
-        steps.append(f"最少雨月 {p_min:.0f}mm が 60mm と {am_line:.0f}mm（100 − 年降水量/25）を下回る"
-                     " → はっきりした乾季のあるサバナ気候（Aw）")
+        steps.append(f"最少雨月 {p_min:.0f}mm < 100 − 年降水量/25 = {am_line:.0f}mm"
+                     "（年降水量が乾季を補うほど多くない）→ はっきりした乾季のあるサバナ気候（Aw）")
         return Result("Aw", steps)
 
     # 4/5. 温帯・亜寒帯の乾季の判定
