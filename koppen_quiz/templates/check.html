@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}判定ツール｜ケッペン気候区分クイズ{% endblock %}
+{% block content %}
+<section class="card">
+  <h1>気候区判定ツール</h1>
+  <p>12か月の平均気温と降水量を入力すると、ケッペンの気候区と判定の手順を表示します。</p>
+  <form method="get" class="row">
+    <label>サンプルを読み込む：
+      <select name="sample" onchange="this.form.submit()">
+        <option value="">— 都市を選ぶ —</option>
+        {% for n in cities %}<option value="{{ n }}">{{ n }}</option>{% endfor %}
+      </select>
+    </label>
+  </form>
+
+  <form method="post">
+    <div class="table-wrap">
+    <table class="input">
+      <tr><th>月</th>{% for m in months %}<th>{{ loop.index }}</th>{% endfor %}</tr>
+      <tr><th>気温℃</th>{% for i in range(12) %}
+        <td><input name="t{{ i }}" value="{{ form.temps[i] }}" inputmode="decimal" aria-label="{{ months[i] }}の気温"></td>{% endfor %}</tr>
+      <tr><th>降水mm</th>{% for i in range(12) %}
+        <td><input name="p{{ i }}" value="{{ form.precs[i] }}" inputmode="decimal" aria-label="{{ months[i] }}の降水量"></td>{% endfor %}</tr>
+    </table>
+    </div>
+    <label class="pick inline"><input type="checkbox" name="southern" value="1" {% if form.southern %}checked{% endif %}> 南半球の地点</label>
+    <button type="submit" class="primary">判定する</button>
+  </form>
+  {% if error %}<p class="verdict ng">{{ error }}</p>{% endif %}
+</section>
+
+{% if outcome %}
+<section class="card">
+  <h2>判定結果：{{ outcome.label }}</h2>
+  <div class="chart">{{ outcome.svg }}</div>
+  <p class="label">判定の手順</p>
+  <ol class="steps">{% for s in outcome.steps %}<li>{{ s }}</li>{% endfor %}</ol>
+  <p>{{ outcome.info.feature }} 植生：{{ outcome.info.vegetation }}／土壌：{{ outcome.info.soil }}</p>
+</section>
+{% endif %}
+{% endblock %}

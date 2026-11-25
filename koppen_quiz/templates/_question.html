@@ -1,0 +1,14 @@
+{# 問題本文（quiz と result で共用） #}
+<p class="prompt">{{ q.prompt }}</p>
+{% if q.hint %}<p class="hint">{{ q.hint }}</p>{% endif %}
+{% if q.chart %}
+<div class="chart">{{ q.chart }}</div>
+<details class="data">
+  <summary>数値データを見る</summary>
+  <table>
+    <tr><th>月</th>{% for m, t, p in q.table %}<td>{{ loop.index }}</td>{% endfor %}</tr>
+    <tr><th>気温℃</th>{% for m, t, p in q.table %}<td>{{ t }}</td>{% endfor %}</tr>
+    <tr><th>降水mm</th>{% for m, t, p in q.table %}<td>{{ p }}</td>{% endfor %}</tr>
+  </table>
+</details>
+{% endif %}

@@ -1,0 +1,10 @@
+{# 解説（quiz と result で共用） #}
+<div class="explain">
+  {% if q.reveal %}<p><b>{{ q.reveal }}</b></p>{% endif %}
+  {% if q.chart_after %}<div class="chart">{{ q.chart_after }}</div>{% endif %}
+  {% if q.steps %}
+  <p class="label">判定の手順</p>
+  <ol class="steps">{% for s in q.steps %}<li>{{ s }}</li>{% endfor %}</ol>
+  {% endif %}
+  <p>{{ q.explanation }}</p>
+</div>

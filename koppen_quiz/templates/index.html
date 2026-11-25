@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card hero">
+  <h1>ケッペンの気候区分をマスターしよう</h1>
+  <p>雨温図の読み取り、都市の気候区、植生・土壌などの用語を4択で確認できます。
+     解答後には判定の手順と解説が表示されます。</p>
+</section>
+
+<form class="card" method="post" action="{{ url_for('start') }}">
+  <h2>出題タイプ</h2>
+  <div class="choices">
+    {% for key, label in modes.items() %}
+    <label class="pick">
+      <input type="radio" name="mode" value="{{ key }}" {% if loop.first %}checked{% endif %}>
+      <span>{{ label }}</span>
+    </label>
+    {% endfor %}
+  </div>
+
+  <h2>問題数</h2>
+  <div class="choices">
+    {% for n in counts %}
+    <label class="pick">
+      <input type="radio" name="count" value="{{ n }}" {% if n == 10 %}checked{% endif %}>
+      <span>{{ n }}問</span>
+    </label>
+    {% endfor %}
+  </div>
+
+  <button type="submit" class="primary big">スタート</button>
+</form>
+
+<section class="card">
+  <h2>判定のポイント（フローチャート）</h2>
+  <ol class="flow">
+    <li><b>最暖月平均気温 &lt; 10℃</b> → 寒帯 <b>E</b>（0℃未満なら EF、0〜10℃なら ET）</li>
+    <li><b>年降水量 &lt; 乾燥限界</b> → 乾燥帯 <b>B</b>（乾燥限界の半分未満なら BW、以上なら BS）</li>
+    <li><b>最寒月平均気温 ≧ 18℃</b> → 熱帯 <b>A</b>（Af / Am / Aw）</li>
+    <li><b>−3℃ ≦ 最寒月 &lt; 18℃</b> → 温帯 <b>C</b>（Cs / Cw / Cfa / Cfb）</li>
+    <li><b>最寒月 &lt; −3℃</b> → 亜寒帯 <b>D</b>（Df / Dw）</li>
+  </ol>
+  <p class="muted">収録：都市 {{ n_cities }} 地点・知識問題 {{ n_knowledge }} 問。
+    詳しくは <a href="{{ url_for('reference') }}">まとめ</a> へ。</p>
+</section>
+{% endblock %}

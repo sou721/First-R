@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="progress">
+  <span>{{ mode_name }}</span>
+  <span>第 {{ num }} 問 / {{ total }}　正解 {{ score }}</span>
+</div>
+<div class="bar-track"><div class="bar-fill" style="width: {{ (num - (0 if answered else 1)) / total * 100 }}%"></div></div>
+
+<section class="card">
+  {% include "_question.html" %}
+
+  {% if not answered %}
+  <form method="post" action="{{ url_for('answer') }}" class="options">
+    {% for opt in q.options %}
+    <button type="submit" name="choice" value="{{ loop.index0 }}" class="option">
+      <span class="num">{{ loop.index }}</span>{{ opt }}
+    </button>
+    {% endfor %}
+  </form>
+  {% else %}
+  {% set ok = chosen == q.answer_index %}
+  <div class="options">
+    {% for opt in q.options %}
+    <div class="option {% if loop.index0 == q.answer_index %}correct{% elif loop.index0 == chosen %}wrong{% endif %}">
+      <span class="num">{{ loop.index }}</span>{{ opt }}
+    </div>
+    {% endfor %}
+  </div>
+  <p class="verdict {{ 'ok' if ok else 'ng' }}">{{ '⭕ 正解！' if ok else '❌ 不正解…' }}</p>
+  {% include "_feedback.html" %}
+  <a class="primary big" href="{{ url_for('quiz') }}">{{ '結果を見る' if num == total else '次の問題へ' }}</a>
+  {% endif %}
+</section>
+
+<script>
+  // 数字キー 1〜4 で解答
+  document.addEventListener('keydown', (e) => {
+    const btns = document.querySelectorAll('button.option');
+    const i = parseInt(e.key, 10) - 1;
+    if (btns.length && i >= 0 && i < btns.length) btns[i].click();
+    if (!btns.length && e.key === 'Enter') document.querySelector('a.primary')?.click();
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}まとめ｜ケッペン気候区分クイズ{% endblock %}
+{% block content %}
+<section class="card">
+  <h1>気候区のまとめ</h1>
+  <div class="table-wrap">
+  <table class="ref">
+    <thead><tr><th>記号</th><th>気候区</th><th>特徴</th><th>植生</th><th>土壌</th><th>主な分布</th></tr></thead>
+    <tbody>
+    {% for code, c in climates.items() %}
+      <tr class="zone-{{ c.zone }}">
+        <td><b>{{ code }}</b></td><td>{{ c.name }}<br><span class="muted">{{ c.zone_name }}</span></td>
+        <td>{{ c.feature }}</td><td>{{ c.vegetation }}</td><td>{{ c.soil }}</td><td>{{ c.regions }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section class="card">
+  <h2>覚えておきたい基準</h2>
+  <ul>
+    <li>乾燥限界 r（mm）= 20 × (年平均気温 + x)。x は 夏に雨が集中 → 14、年中平均 → 7、冬に雨が集中 → 0。</li>
+    <li>Af：最少雨月 60mm 以上。Am：60mm 未満だが「100 − 年降水量/25」以上。Aw：それ未満（明瞭な乾季）。</li>
+    <li>s（夏乾燥）：夏の最少雨月が冬の最多雨月の 1/3 未満（かつ 40mm 未満）。</li>
+    <li>w（冬乾燥）：冬の最少雨月が夏の最多雨月の 1/10 未満。</li>
+    <li>南半球では季節が逆（夏は12〜2月）。雨温図の気温の山の位置に注意！</li>
+  </ul>
+</section>
+
+<h2>代表的な都市の雨温図</h2>
+<div class="grid">
+{% for c in cities %}
+  <div class="card city zone-{{ climates[c.code].zone }}">
+    <h3>{{ c.name }} <span class="muted">{{ c.country }}</span></h3>
+    <p class="tag">{{ c.label }}</p>
+    {{ c.svg }}
+    <a href="{{ url_for('check', sample=c.name) }}" class="small">判定ツールで手順を見る →</a>
+  </div>
+{% endfor %}
+</div>
+{% endblock %}

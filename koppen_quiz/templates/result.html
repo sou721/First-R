@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+{% set pct = (score / total * 100) | round | int %}
+<section class="card hero center">
+  <h1>結果：{{ score }} / {{ total }} 問正解（{{ pct }}%）</h1>
+  <p class="big-msg">
+    {% if pct == 100 %}🎉 パーフェクト！テスト本番も自信をもって臨もう。
+    {% elif pct >= 80 %}👍 よくできました。間違えた問題を見直せば完璧！
+    {% elif pct >= 50 %}📖 あと一歩。下の解説で判定の手順を確認しよう。
+    {% else %}💪 まずは「まとめ」で基準の数値（10℃・18℃・−3℃・22℃）を覚えよう。
+    {% endif %}
+  </p>
+  <form method="post" action="{{ url_for('start') }}" class="row">
+    <input type="hidden" name="mode" value="{{ mode }}">
+    <input type="hidden" name="count" value="{{ total }}">
+    <button type="submit" class="primary">同じ設定でもう一度</button>
+    <a href="{{ url_for('index') }}" class="secondary">設定を変える</a>
+  </form>
+</section>
+
+<h2>見直し</h2>
+{% for r in review %}
+{% set q = r.q %}
+<details class="card review {{ 'ok' if r.ok else 'ng' }}" {% if not r.ok %}open{% endif %}>
+  <summary>{{ '⭕' if r.ok else '❌' }} 第{{ loop.index }}問　{{ q.prompt }}</summary>
+  {% include "_question.html" %}
+  <p>正解：<b>{{ q.options[q.answer_index] }}</b>
+    {% if not r.ok %}／ あなたの解答：{{ q.options[r.chosen] if 0 <= r.chosen < q.options|length else '—' }}{% endif %}</p>
+  {% include "_feedback.html" %}
+</details>
+{% endfor %}
+{% endblock %}
