@@ -69,3 +69,50 @@ def climograph_svg(temps, precs, title=""):
     parts.append(f'<text x="{LEFT + pw / 2}" y="{H - 4}" class="lbl" text-anchor="middle">月</text>')
     parts.append("</svg>")
     return Markup("".join(parts))
+
+
+def hythergraph_svg(temps, precs, title=""):
+    """ハイサーグラフ（横軸：降水量、縦軸：気温。1〜12月の点を順に結ぶ）の SVG。"""
+    lo, hi = _temp_range(temps)
+    p_step = 100 if max(precs) <= 500 else 200
+    p_max = max(p_step, math.ceil(max(precs) / p_step) * p_step)
+    L, R, T, B = 44, 16, 22, 40
+    HH = 380                                      # 正方形に近い縦長の図
+    pw, ph = W - L - R, HH - T - B
+
+    def x(p):
+        return L + pw * p / p_max
+
+    def y(t):
+        return T + ph * (hi - t) / (hi - lo)
+
+    parts = [f'<svg viewBox="0 0 {W} {HH}" class="climograph hyther" role="img" '
+             f'aria-label="ハイサーグラフ{(" " + title) if title else ""}" xmlns="http://www.w3.org/2000/svg">']
+    for t in range(lo, hi + 1, 10):
+        cls = "axis zero" if t == 0 else "grid"
+        parts.append(f'<line x1="{L}" y1="{y(t):.1f}" x2="{W - R}" y2="{y(t):.1f}" class="{cls}"/>')
+        parts.append(f'<text x="{L - 6}" y="{y(t) + 4:.1f}" class="lbl t" text-anchor="end">{t}</text>')
+    for p in range(0, p_max + 1, p_step):
+        parts.append(f'<line x1="{x(p):.1f}" y1="{T}" x2="{x(p):.1f}" y2="{T + ph}" class="grid"/>')
+        parts.append(f'<text x="{x(p):.1f}" y="{T + ph + 15}" class="lbl p" text-anchor="middle">{p}</text>')
+    parts.append(f'<rect x="{L}" y="{T}" width="{pw}" height="{ph}" class="frame"/>')
+
+    pts = [(x(p), y(t)) for t, p in zip(temps, precs)]
+    cx = sum(px for px, _ in pts) / 12
+    cy = sum(py for _, py in pts) / 12
+    loop = " ".join(f"{px:.1f},{py:.1f}" for px, py in pts + pts[:1])
+    parts.append(f'<polyline points="{loop}" class="line"/>')
+    for m, (px, py) in enumerate(pts):
+        cls = "dot first" if m == 0 else "dot"
+        parts.append(f'<circle cx="{px:.1f}" cy="{py:.1f}" r="{5 if m == 0 else 3.5}" class="{cls}">'
+                     f'<title>{m + 1}月 {temps[m]}℃ {precs[m]}mm</title></circle>')
+        # 月の数字は図形の中心から外側へずらして重なりを減らす
+        dx, dy = px - cx, py - cy
+        d = math.hypot(dx, dy) or 1
+        lx, ly = px + dx / d * 10, py + dy / d * 10 + 3.5
+        parts.append(f'<text x="{lx:.1f}" y="{ly:.1f}" class="mon" text-anchor="middle">{m + 1}</text>')
+
+    parts.append(f'<text x="{L - 6}" y="{T - 7}" class="lbl t" text-anchor="end">℃</text>')
+    parts.append(f'<text x="{L + pw / 2}" y="{HH - 6}" class="lbl p" text-anchor="middle">降水量（mm）</text>')
+    parts.append("</svg>")
+    return Markup("".join(parts))

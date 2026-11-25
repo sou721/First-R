@@ -81,3 +81,10 @@ def test_reference_and_check(client):
     assert "判定結果：Cfb" in page
     page = client.post("/check", data={"t0": "abc"}).get_data(as_text=True)
     assert "数値で入力" in page
+
+
+def test_cards_page(client):
+    page = client.get("/").get_data(as_text=True)
+    assert page.count('class="flip-card"') == len(CITIES)
+    assert "ハイサーグラフ" in page
+    assert client.get("/menu").status_code == 200

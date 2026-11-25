@@ -3,7 +3,7 @@ import secrets
 
 from flask import Flask, redirect, render_template, request, session, url_for
 
-from .climograph import climograph_svg
+from .climograph import climograph_svg, hythergraph_svg
 from .data import CITIES, CLIMATES, KNOWLEDGE
 from .koppen import MONTHS, classify
 from .quiz import MODES, build_quiz, climate_label, render_question
@@ -18,6 +18,18 @@ def create_app(test_config=None):
         app.config.update(test_config)
 
     @app.route("/")
+    def cards():
+        deck = []
+        for name, c in CITIES.items():
+            res = classify(c["temps"], c["precs"], c["southern"])
+            deck.append({"name": name, "country": c["country"], "code": c["code"],
+                         "zone": CLIMATES[c["code"]]["zone"], "southern": c["southern"],
+                         "label": climate_label(c["code"]), "info": CLIMATES[c["code"]],
+                         "steps": res.steps, "svg": hythergraph_svg(c["temps"], c["precs"])})
+        zones = {c["zone"]: c["zone_name"] for c in CLIMATES.values()}
+        return render_template("cards.html", deck=deck, zones=zones)
+
+    @app.route("/menu")
     def index():
         return render_template("index.html", modes=MODES, counts=COUNTS,
                                n_cities=len(CITIES), n_knowledge=len(KNOWLEDGE))

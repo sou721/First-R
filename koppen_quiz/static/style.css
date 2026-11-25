@@ -115,3 +115,45 @@ table.ref th, table.ref td { border: 1px solid var(--border); padding: 6px; vert
 .city .tag { display: inline-block; border-radius: 6px; padding: 0 8px; margin: 4px 0; font-size: .85rem; }
 .small { font-size: .8rem; }
 select { font-size: 1rem; padding: 4px; background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 6px; }
+
+/* ---- ハイサーグラフ暗記カード ---- */
+.climograph.hyther .line { stroke-width: 2; }
+.climograph .dot.first { fill: var(--card); stroke: var(--temp); stroke-width: 2.5; }
+.climograph .mon { font-size: 10px; fill: var(--text); font-weight: 700; }
+.deck-bar { display: flex; flex-direction: column; gap: 8px; }
+.filters { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  border: 1px solid var(--border); background: var(--card); color: var(--text); border-radius: 999px;
+  padding: 4px 12px; font-size: .85rem; cursor: pointer; font-family: inherit;
+}
+.chip.active { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+.deck-status { display: flex; justify-content: space-between; color: var(--muted); font-size: .9rem; }
+.flip-area { margin: 12px 0; }
+.flip-card .chart { margin: 4px auto; }
+.flip-card { perspective: 1200px; cursor: pointer; outline: none; -webkit-tap-highlight-color: transparent; }
+.flip-card[hidden] { display: none; }
+.flip-inner {
+  position: relative; display: grid; transition: transform .5s; transform-style: preserve-3d;
+}
+.flip-card.flipped .flip-inner { transform: rotateY(180deg); }
+.face {
+  grid-area: 1 / 1; backface-visibility: hidden; -webkit-backface-visibility: hidden;
+  background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 16px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, .08);
+}
+.face.back { transform: rotateY(180deg); overflow-y: auto; position: absolute; inset: 0; }
+.flip-card:focus-visible .face { outline: 3px solid var(--accent); }
+.face-title { font-weight: 700; font-size: 1.1rem; margin: 0; text-align: center; }
+.face .hint { text-align: center; font-size: .9rem; margin: 6px 0; }
+.tap { text-align: center; color: var(--muted); font-size: .85rem; margin: 8px 0 0; }
+.answer-code { font-size: 1.5rem; font-weight: 800; margin: 4px 0 0; text-align: center; }
+.answer-city { text-align: center; font-size: 1.1rem; margin: 0 0 8px; }
+.zone-bg-A { background: var(--zA); } .zone-bg-B { background: var(--zB); }
+.zone-bg-C { background: var(--zC); } .zone-bg-D { background: var(--zD); }
+.zone-bg-E { background: var(--zE); }
+.deck-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.deck-actions[hidden], .deck-sub[hidden] { display: none; }
+.deck-actions button { padding: 14px; font-size: 1.05rem; }
+.deck-sub { display: flex; justify-content: space-between; margin: 10px 0; }
+.link { background: none; border: 0; color: var(--accent); font-size: .95rem; cursor: pointer; padding: 6px; font-family: inherit; }
+.done { text-align: center; }
